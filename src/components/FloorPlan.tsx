@@ -8,12 +8,18 @@ export default function FloorPlan() {
   const navigate = useNavigate();
 
   return (
-    // Starts on the full building (viewBox below is the initial/from
-    // state), then the <animate> zooms the viewBox itself toward the
-    // three bookable rooms — a real camera zoom within the SVG's own
-    // coordinate space, not a CSS box-scale (which left a page-background
-    // gap around the narrower final aspect ratio while it animated).
-    <svg viewBox="-1040.5 14.5 1029 1136" className="h-full w-auto select-none">
+    // Fills the entire viewport like a background image (w-full h-full +
+    // preserveAspectRatio="slice", same idea as CSS object-fit: cover) —
+    // no sized/positioned box, so there's nothing to look "boxed" or
+    // "cropped" against. viewBox starts on the full building, then the
+    // <animate> zooms it toward the three bookable rooms; slice mode
+    // means it's always covering the full screen at every point in that
+    // animation, just showing a different window into the same plan.
+    <svg
+      viewBox="-1040.5 14.5 1029 1136"
+      preserveAspectRatio="xMidYMid slice"
+      className="absolute inset-0 w-full h-full select-none"
+    >
       <animate
         attributeName="viewBox"
         values="-1040.5 14.5 1029 1136;-730 253 569 818"
