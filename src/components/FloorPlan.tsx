@@ -1,10 +1,41 @@
+import { useEffect, useState } from "react";
+import { useAnimatedViewBox, type ViewBox } from "@/hooks/useAnimatedViewBox";
+
+const FULL_BUILDING: ViewBox = [-1040.5, 14.5, 1029, 1136];
+const OVERVIEW: ViewBox = [-730, 253, 569, 818];
+const ROOM_ZOOM: Record<string, ViewBox> = {
+  "small-conference-room": [-630, 308, 266, 277],
+  "big-conference-room": [-675, 455, 315, 348],
+  studio: [-452, 745, 236, 271],
+};
+
+export type RoomSlug = keyof typeof ROOM_ZOOM;
+
 // Traced 1:1 from the real floor plan by hand in Illustrator (source:
 // /Users/mickjunge/Documents/mockups DLP digital poster/floorplan_slick.svg),
 // not measured/approximated like the earlier version. Only three rooms are
-// bookable — everything else is static line art for context. Clicking a
-// room used to navigate to /rooms/:slug; that's disabled for now while
-// the room list/nav on the page itself is being built out instead.
-export default function FloorPlan() {
+// bookable — everything else is static line art for context.
+export default function FloorPlan({
+  zoomTo,
+  onSelectRoom,
+}: {
+  zoomTo: "overview" | RoomSlug;
+  onSelectRoom?: (slug: RoomSlug) => void;
+}) {
+  // Holds at the full building for a beat on first mount (so the intro
+  // reads as "see the whole plan, then zoom in") before handing control
+  // to whatever zoomTo actually is. After that first flip, target just
+  // tracks zoomTo directly — including switching between rooms, or back
+  // to the overview, each re-targeting the same in-flight tween rather
+  // than restarting from scratch.
+  const [introDone, setIntroDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setIntroDone(true), 300);
+    return () => clearTimeout(t);
+  }, []);
+  const target = !introDone ? FULL_BUILDING : zoomTo === "overview" ? OVERVIEW : ROOM_ZOOM[zoomTo];
+  const viewBox = useAnimatedViewBox(target, FULL_BUILDING, 900);
+
   return (
     // Fills the entire viewport (w-full h-full, absolute inset-0). Uses
     // preserveAspectRatio="meet" (the default) rather than "slice": slice
@@ -15,20 +46,10 @@ export default function FloorPlan() {
     // that letterbox is plain white against a white page, it's invisible
     // rather than looking like a visible box.
     <svg
-      viewBox="-1040.5 14.5 1029 1136"
+      viewBox={viewBox.join(" ")}
       preserveAspectRatio="xMaxYMid meet"
       className="absolute inset-0 w-full h-full select-none"
     >
-      <animate
-        attributeName="viewBox"
-        values="-1040.5 14.5 1029 1136;-730 253 569 818"
-        keyTimes="0;1"
-        keySplines="0.16 1 0.3 1"
-        calcMode="spline"
-        dur="1.6s"
-        begin="0s"
-        fill="freeze"
-      />
       <style>{`
         .bookable { fill: #eff6ff; cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #dbeafe; }
@@ -61,11 +82,10 @@ export default function FloorPlan() {
               under/past them (walls have real thickness, drawn straddling
               the room boundary). Sharp corners (no rx) to match the real
               architecture — see the earlier fix for why a rounded fill
-              read as wrong here. Click-to-navigate disabled for now, see
-              file header comment. */}
-          <rect x={813} y={284} width={135} height={100} className="bookable" />
-          <rect x={376} y={432} width={141} height={130} className="bookable" />
-          <rect x={523} y={428} width={212} height={179} className="bookable" />
+              read as wrong here. */}
+          <rect x={813} y={284} width={135} height={100} className="bookable" onClick={() => onSelectRoom?.("studio")} />
+          <rect x={376} y={432} width={141} height={130} className="bookable" onClick={() => onSelectRoom?.("small-conference-room")} />
+          <rect x={523} y={428} width={212} height={179} className="bookable" onClick={() => onSelectRoom?.("big-conference-room")} />
         </g>
 
         {/* Only the furniture inside the two bookable conference rooms is
