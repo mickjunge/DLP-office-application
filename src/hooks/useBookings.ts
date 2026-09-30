@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type Booking = {
   id: string;
@@ -70,6 +71,7 @@ function forgetBooking(id: string) {
 export function useRoomBookings(roomId: string | undefined) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const refresh = useCallback(async () => {
     if (!roomId) return;
@@ -87,6 +89,34 @@ export function useRoomBookings(roomId: string | undefined) {
     refresh();
   }, [refresh]);
 
+  // Double-booking is already prevented regardless of this — the
+  // bookings_no_overlap exclusion constraint rejects an overlapping
+  // insert/update atomically at the database level no matter what any
+  // client's UI currently shows. This is purely about freshness: without
+  // it, someone viewing this room wouldn't see another person's booking
+  // until they happened to refetch, and could waste an attempt booking
+  // a slot that's actually already taken. No DB trigger needed — every
+  // write already goes through this hook, so it broadcasts right after
+  // a successful create/update/cancel; any other tab subscribed to this
+  // same room's channel just refetches on that signal rather than
+  // trying to patch state from the payload (simpler, and fine at the
+  // scale of a few bookings per room).
+  useEffect(() => {
+    if (!roomId) return;
+    const channel = supabase.channel(`room:${roomId}`);
+    channel.on("broadcast", { event: "booking_changed" }, () => refresh());
+    channel.subscribe();
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [roomId, refresh]);
+
+  const notifyChanged = useCallback(() => {
+    channelRef.current?.send({ type: "broadcast", event: "booking_changed", payload: {} });
+  }, []);
+
   const createBooking = useCallback(
     async (input: { title: string; startsAt: string; endsAt: string; bookedBy: string }) => {
       if (!roomId) throw new Error("No room selected");
@@ -101,9 +131,10 @@ export function useRoomBookings(roomId: string | undefined) {
       const booking = data as Booking & { edit_token: string };
       rememberBooking(booking.id, booking.edit_token);
       await refresh();
+      notifyChanged();
       return booking;
     },
-    [roomId, refresh]
+    [roomId, refresh, notifyChanged]
   );
 
   const updateBooking = useCallback(
@@ -119,8 +150,9 @@ export function useRoomBookings(roomId: string | undefined) {
       });
       if (error) throw error;
       await refresh();
+      notifyChanged();
     },
-    [refresh]
+    [refresh, notifyChanged]
   );
 
   const cancelBooking = useCallback(
@@ -134,8 +166,9 @@ export function useRoomBookings(roomId: string | undefined) {
       if (error) throw error;
       forgetBooking(bookingId);
       await refresh();
+      notifyChanged();
     },
-    [refresh]
+    [refresh, notifyChanged]
   );
 
   return { bookings, isLoading, createBooking, updateBooking, cancelBooking, refresh };
