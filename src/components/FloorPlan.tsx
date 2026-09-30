@@ -18,9 +18,15 @@ export type RoomSlug = keyof typeof ROOM_ZOOM;
 export default function FloorPlan({
   zoomTo,
   onSelectRoom,
+  busySlugs,
 }: {
   zoomTo: "overview" | RoomSlug;
   onSelectRoom?: (slug: RoomSlug) => void;
+  // Rooms with a booking active right now — only colored green/red on
+  // the overview. Once zoomed into a specific room, that room's own
+  // detail panel already shows its status, so the shape reverts to the
+  // neutral blue tint rather than showing red under your own booking.
+  busySlugs?: Set<RoomSlug>;
 }) {
   // Holds at the full building for a beat on first mount (so the intro
   // reads as "see the whole plan, then zoom in") before handing control
@@ -35,6 +41,15 @@ export default function FloorPlan({
   }, []);
   const target = !introDone ? FULL_BUILDING : zoomTo === "overview" ? OVERVIEW : ROOM_ZOOM[zoomTo];
   const viewBox = useAnimatedViewBox(target, FULL_BUILDING, 900);
+  // Overview: every room shows its live status. Zoomed into a specific
+  // room: only that room keeps its status color — the others (mostly
+  // out of frame anyway, but sometimes partially visible at the edges)
+  // revert to the plain neutral tint instead of showing red/green for
+  // a room that isn't the one being looked at.
+  const roomClass = (slug: RoomSlug) => {
+    const showStatus = zoomTo === "overview" || zoomTo === slug;
+    return showStatus ? (busySlugs?.has(slug) ? "status-busy" : "status-available") : "bookable";
+  };
 
   return (
     // Fills the entire viewport (w-full h-full, absolute inset-0). Uses
@@ -53,6 +68,10 @@ export default function FloorPlan({
       <style>{`
         .bookable { fill: #eff6ff; cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #dbeafe; }
+        .status-available { fill: #dcfce7; cursor: pointer; transition: fill .2s ease; }
+        .status-available:hover { fill: #bbf7d0; }
+        .status-busy { fill: #fee2e2; cursor: pointer; transition: fill .2s ease; }
+        .status-busy:hover { fill: #fecaca; }
         .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
       `}</style>
       <rect x={-1066} y={-11} width={1080} height={1187} fill="#fff" />
@@ -83,9 +102,9 @@ export default function FloorPlan({
               the room boundary). Sharp corners (no rx) to match the real
               architecture — see the earlier fix for why a rounded fill
               read as wrong here. */}
-          <rect x={813} y={284} width={135} height={100} className="bookable" onClick={() => onSelectRoom?.("studio")} />
-          <rect x={376} y={432} width={141} height={130} className="bookable" onClick={() => onSelectRoom?.("small-conference-room")} />
-          <rect x={523} y={428} width={212} height={179} className="bookable" onClick={() => onSelectRoom?.("big-conference-room")} />
+          <rect x={813} y={284} width={135} height={100} className={roomClass("studio")} onClick={() => onSelectRoom?.("studio")} />
+          <rect x={376} y={432} width={141} height={130} className={roomClass("small-conference-room")} onClick={() => onSelectRoom?.("small-conference-room")} />
+          <rect x={523} y={428} width={212} height={179} className={roomClass("big-conference-room")} onClick={() => onSelectRoom?.("big-conference-room")} />
         </g>
 
         {/* Only the furniture inside the two bookable conference rooms is

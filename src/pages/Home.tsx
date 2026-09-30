@@ -4,6 +4,7 @@ import { Users, Tv } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import FloorPlan, { type RoomSlug } from "@/components/FloorPlan";
 import RoomDetailPanel, { type Room } from "@/components/RoomDetailPanel";
+import { useRoomsStatus } from "@/hooks/useRoomsStatus";
 
 const ROOM_NUMBERS: Record<string, string> = {
   "small-conference-room": "01",
@@ -40,6 +41,9 @@ export default function Home() {
   const [selectedSlug, setSelectedSlug] = useState<RoomSlug | null>(null);
   const selectedRoom = rooms?.find(r => r.slug === selectedSlug) ?? null;
 
+  const busyRoomIds = useRoomsStatus(rooms?.map(r => r.id) ?? []);
+  const busySlugs = new Set((rooms ?? []).filter(r => busyRoomIds.has(r.id)).map(r => r.slug as RoomSlug));
+
   // Slide in/out on the panel content: React can't animate an exit on
   // its own (a conditional swap just unmounts instantly), so this
   // tracks the content that's actually on screen separately from
@@ -73,6 +77,7 @@ export default function Home() {
       <FloorPlan
         zoomTo={selectedSlug ?? "overview"}
         onSelectRoom={slug => setSelectedSlug(slug)}
+        busySlugs={busySlugs}
       />
 
       {/* Only shown in detail view — the floorplan is zoomed in behind
