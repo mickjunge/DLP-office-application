@@ -50,14 +50,27 @@ function toTimeInputValue(d: Date) {
 
 type FormValues = { title: string; bookedBy: string; date: string; startTime: string; endTime: string };
 
+// True if [startsAt, endsAt) overlaps any of the room's existing
+// bookings other than the one being edited (excludeBookingId).
+function overlapsExisting(bookings: Booking[], startsAt: Date, endsAt: Date, excludeBookingId?: string): boolean {
+  return bookings.some(b => {
+    if (b.id === excludeBookingId) return false;
+    return startsAt < new Date(b.ends_at) && endsAt > new Date(b.starts_at);
+  });
+}
+
 function BookingForm({
   editing,
   initial,
+  bookings,
+  excludeBookingId,
   onSubmit,
   onCancel,
 }: {
   editing?: boolean;
   initial: FormValues;
+  bookings: Booking[];
+  excludeBookingId?: string;
   onSubmit: (input: { title: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
   onCancel?: () => void;
 }) {
@@ -74,16 +87,29 @@ function BookingForm({
     set("endTime", `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
   };
 
+  const isComplete = !!(values.title && values.date && values.startTime && values.endTime && (editing || values.bookedBy));
+  // Client-side check against the bookings already loaded for this
+  // room — catches the common case (picking an obviously-taken slot)
+  // before ever submitting. The server-side exclusion constraint still
+  // has the final say (see friendlyError below) for the rare race where
+  // someone else books the same slot in between — that's a toast, since
+  // there's nothing to point the button at once it's already in flight.
+  const startsAt = values.date && values.startTime ? new Date(`${values.date}T${values.startTime}`) : null;
+  const endsAt = values.date && values.endTime ? new Date(`${values.date}T${values.endTime}`) : null;
+  const hasConflict =
+    isComplete && startsAt && endsAt && endsAt > startsAt && overlapsExisting(bookings, startsAt, endsAt, excludeBookingId);
+  const canSubmit = isComplete && !hasConflict && !submitting;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!values.title || !values.date || !values.startTime || !values.endTime || (!editing && !values.bookedBy)) return;
+    if (!canSubmit || !startsAt || !endsAt) return;
     setSubmitting(true);
     try {
       await onSubmit({
         title: values.title,
         bookedBy: values.bookedBy,
-        startsAt: new Date(`${values.date}T${values.startTime}`).toISOString(),
-        endsAt: new Date(`${values.date}T${values.endTime}`).toISOString(),
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
       });
     } catch (err) {
       toast.error(friendlyError(err));
@@ -130,6 +156,11 @@ function BookingForm({
           </button>
         ))}
       </div>
+      {hasConflict && (
+        <p className="text-xs text-red-600 text-right -mb-1">
+          This time overlaps an existing booking for this room — pick a different time.
+        </p>
+      )}
       <div className="flex justify-end items-center gap-2">
         {onCancel && (
           <button type="button" onClick={onCancel} className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden transition-colors cursor-pointer">
@@ -138,8 +169,12 @@ function BookingForm({
         )}
         <button
           type="submit"
-          disabled={submitting}
-          className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-white/10 bg-neutral-700 text-white shadow-sm hover:bg-neutral-600 focus:outline-hidden transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+          disabled={!canSubmit}
+          className={`h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border shadow-sm focus:outline-hidden transition-colors cursor-pointer disabled:pointer-events-none ${
+            hasConflict
+              ? "border-red-700/10 bg-red-600 text-white disabled:opacity-60"
+              : "border-white/10 bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40"
+          }`}
         >
           {submitting ? "Saving…" : editing ? "Save" : "Book"}
         </button>
@@ -227,6 +262,8 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
           key={formKey}
           editing={!!editingBooking}
           initial={formValues}
+          bookings={bookings}
+          excludeBookingId={editingBooking?.id}
           onCancel={editingBooking ? () => { setEditingBooking(null); setFormValues(defaultFormValues()); setFormKey(k => k + 1); } : undefined}
           onSubmit={async input => {
             if (editingBooking) {
