@@ -1,12 +1,10 @@
-import { useNavigate } from "react-router-dom";
-
 // Traced 1:1 from the real floor plan by hand in Illustrator (source:
 // /Users/mickjunge/Documents/mockups DLP digital poster/floorplan_slick.svg),
 // not measured/approximated like the earlier version. Only three rooms are
-// bookable — everything else is static line art for context.
+// bookable — everything else is static line art for context. Clicking a
+// room used to navigate to /rooms/:slug; that's disabled for now while
+// the room list/nav on the page itself is being built out instead.
 export default function FloorPlan() {
-  const navigate = useNavigate();
-
   return (
     // Fills the entire viewport (w-full h-full, absolute inset-0). Uses
     // preserveAspectRatio="meet" (the default) rather than "slice": slice
@@ -27,14 +25,14 @@ export default function FloorPlan() {
         keyTimes="0;1"
         keySplines="0.16 1 0.3 1"
         calcMode="spline"
-        dur="1.4s"
-        begin="0.3s"
+        dur="1.6s"
+        begin="0s"
         fill="freeze"
       />
       <style>{`
         .bookable { cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #eff6ff; }
-        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 34px; font-weight: 700; fill: #1d4ed8; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 34px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
       `}</style>
       <rect x={-1066} y={-11} width={1080} height={1187} fill="#fff" />
       <g transform="rotate(90)">
@@ -58,10 +56,11 @@ export default function FloorPlan() {
           <rect x={882} y={877} width={126} height={141} fill="#FFFFFF" />
           <rect x={1008} y={877} width={120} height={141} fill="#FFFFFF" />
 
-          {/* Bookable rooms */}
-          <rect x={810} y={281} width={141} height={106} fill="#FFFFFF" className="bookable" onClick={() => navigate("/rooms/studio")} />
-          <rect x={373} y={429} width={147} height={136} fill="#FFFFFF" className="bookable" onClick={() => navigate("/rooms/small-conference-room")} />
-          <rect x={520} y={425} width={218} height={185} fill="#FFFFFF" className="bookable" onClick={() => navigate("/rooms/big-conference-room")} />
+          {/* Bookable rooms — click-to-navigate disabled for now, see
+              file header comment */}
+          <rect x={810} y={281} width={141} height={106} fill="#FFFFFF" className="bookable" />
+          <rect x={373} y={429} width={147} height={136} fill="#FFFFFF" className="bookable" />
+          <rect x={520} y={425} width={218} height={185} fill="#FFFFFF" className="bookable" />
         </g>
 
         <g id="furniture">
@@ -157,14 +156,17 @@ export default function FloorPlan() {
         />
 
         {/* Room numbers, top-to-bottom in the final rendered orientation:
-            01 Small conference, 02 Big conference, 03 Studio. Each is
+            01 Small conference, 02 Big conference, 03 Studio. Anchored
+            near each room's final top-left corner — under this group's
+            rotate(90), that corresponds to each room's pre-rotation
+            bottom-left corner (x, y+h), inset by 22 units. Each is also
             counter-rotated -90° around its own anchor to cancel the
             parent <g>'s rotate(90) (same fix as the earlier label bug —
             otherwise these render sideways too). */}
         <g id="room-numbers">
-          <text className="room-number" x={446.5} y={497} transform="rotate(-90 446.5 497)">01</text>
-          <text className="room-number" x={629} y={517.5} transform="rotate(-90 629 517.5)">02</text>
-          <text className="room-number" x={880.5} y={334} transform="rotate(-90 880.5 334)">03</text>
+          <text className="room-number" x={395} y={543} transform="rotate(-90 395 543)">01</text>
+          <text className="room-number" x={542} y={588} transform="rotate(-90 542 588)">02</text>
+          <text className="room-number" x={832} y={365} transform="rotate(-90 832 365)">03</text>
         </g>
       </g>
     </svg>
