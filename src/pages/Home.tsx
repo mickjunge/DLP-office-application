@@ -21,7 +21,7 @@ function RoomBadges({ room }: { room: Room }) {
       </span>
       <span className={`inline-flex items-center gap-1 text-xs font-medium ${room.has_tv ? "text-gray-500" : "text-gray-300"}`}>
         <Tv className="h-3.5 w-3.5" />
-        {room.has_tv === null ? "—" : room.has_tv ? "TV" : "No TV"}
+        {room.has_tv === null ? "—" : room.has_tv ? "Screen" : "No screen"}
       </span>
     </div>
   );
@@ -46,6 +46,22 @@ export default function Home() {
         zoomTo={selectedSlug ?? "overview"}
         onSelectRoom={slug => setSelectedSlug(slug)}
       />
+
+      {/* Only shown in detail view — the floorplan is zoomed in behind
+          the panel here (unlike the overview, where it's zoomed out and
+          mostly out of the way on the left already), so the panel needs
+          a backdrop to stay legible over it. Wider than a literal "left
+          third": at this zoom level, on a typical wide window, the
+          floorplan's actual content doesn't start until roughly 40-45%
+          across (xMaxYMid alignment + a tall crop leaves a blank margin
+          before it) — a 33%-wide fade would sit entirely over that
+          blank margin and do nothing, the same invisible-fade mistake
+          from earlier in this project. Widened so it actually reaches
+          the drawn content, confirmed by rendering the big-conference-
+          room zoom at 1440px: content starts at ~43%. */}
+      {selectedRoom && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-white via-white/80 to-transparent animate-in fade-in duration-300" />
+      )}
 
       <div className="absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full max-w-sm overflow-y-auto">
         {selectedRoom ? (
