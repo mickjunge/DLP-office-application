@@ -8,11 +8,11 @@ export default function FloorPlan() {
   const navigate = useNavigate();
 
   return (
-    // Full building, nothing clipped — viewBox is a snug bound around the
-    // actual outer walls (not the original poster canvas's huge margins).
-    // Zoom toward the three bookable rooms is handled by the caller via
-    // CSS transform, not by narrowing this viewBox.
-    <svg viewBox="-1040.5 14.5 1029 1136" className="h-full w-auto select-none">
+    // Zoomed toward the three bookable rooms — the full building geometry
+    // below is untouched/complete, this viewBox just windows into a
+    // region of it, so parts of the building intentionally render outside
+    // the visible page (clipped by the page's own overflow-hidden).
+    <svg viewBox="-730 253 569 818" className="h-full w-auto select-none">
       <style>{`
         .bookable { cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #eff6ff; }
