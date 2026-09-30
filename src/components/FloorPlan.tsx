@@ -30,9 +30,9 @@ export default function FloorPlan() {
         fill="freeze"
       />
       <style>{`
-        .bookable { cursor: pointer; transition: fill .2s ease; }
-        .bookable:hover { fill: #eff6ff; }
-        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 34px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .bookable { fill: #eff6ff; cursor: pointer; transition: fill .2s ease; }
+        .bookable:hover { fill: #dbeafe; }
+        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
       `}</style>
       <rect x={-1066} y={-11} width={1080} height={1187} fill="#fff" />
       <g transform="rotate(90)">
