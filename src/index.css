@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background-color: #f9f9f9;
+    color: #1f2937;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input, textarea, select, button { font-family: inherit; font-size: inherit; }
+  button { font-weight: 500; }
+  h1, h2, h3, h4 { letter-spacing: -0.025em; }
+}
+
+/* Success checkmark animation — see CLAUDE.md "Success confirmation" */
+@layer components {
+  .success-check-circle {
+    stroke-dasharray: 95;
+    stroke-dashoffset: 95;
+    animation: success-check-circle 0.4s ease-out forwards;
+  }
+  .success-check-mark {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    animation: success-check-mark 0.3s ease-out 0.3s forwards;
+  }
+  @keyframes success-check-circle {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes success-check-mark {
+    to { stroke-dashoffset: 0; }
+  }
+}
