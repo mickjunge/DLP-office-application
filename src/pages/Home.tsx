@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import FloorPlan, { type RoomSlug } from "@/components/FloorPlan";
 import RoomDetailPanel, { type Room } from "@/components/RoomDetailPanel";
 import { useRoomsStatus } from "@/hooks/useRoomsStatus";
+import { useMyReservations } from "@/hooks/useMyReservations";
 
 const ROOM_NUMBERS: Record<string, string> = {
   "small-conference-room": "01",
@@ -12,6 +13,18 @@ const ROOM_NUMBERS: Record<string, string> = {
   studio: "03",
 };
 const ROOM_ORDER = ["small-conference-room", "big-conference-room", "studio"];
+
+function reservationLabel(startsAt: string, endsAt: string) {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  const today = new Date();
+  const dayLabel =
+    start.toDateString() === today.toDateString()
+      ? "Today"
+      : start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  const timeLabel = `${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – ${end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  return `${dayLabel} · ${timeLabel}`;
+}
 
 function RoomBadges({ room }: { room: Room }) {
   return (
@@ -37,6 +50,8 @@ export default function Home() {
       return (data as Room[]).sort((a, b) => ROOM_ORDER.indexOf(a.slug) - ROOM_ORDER.indexOf(b.slug));
     },
   });
+
+  const myReservations = useMyReservations(rooms ?? []);
 
   const [selectedSlug, setSelectedSlug] = useState<RoomSlug | null>(null);
   const selectedRoom = rooms?.find(r => r.slug === selectedSlug) ?? null;
@@ -136,6 +151,28 @@ export default function Home() {
                   </button>
                 ))}
               </nav>
+
+              {myReservations.length > 0 && (
+                <div className="mt-10">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">My reservations</p>
+                  <div className="flex flex-col gap-3">
+                    {myReservations.map(r => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          const slug = rooms?.find(room => room.id === r.room_id)?.slug as RoomSlug | undefined;
+                          if (slug) setSelectedSlug(slug);
+                        }}
+                        className="text-left cursor-pointer group"
+                      >
+                        <p className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors truncate">{r.title}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

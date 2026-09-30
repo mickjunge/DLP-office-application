@@ -68,12 +68,16 @@ function forgetBooking(id: string) {
   writeMyBookings(readMyBookings().filter(b => b.id !== id));
 }
 
+const MAX_TIMEOUT = 2_000_000_000; // setTimeout's delay is a 32-bit int; clamp well under that
+
 export function useRoomBookings(roomId: string | undefined) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const boundaryTimeoutRef = useRef<number | undefined>(undefined);
 
   const refresh = useCallback(async () => {
+    if (boundaryTimeoutRef.current) clearTimeout(boundaryTimeoutRef.current);
     if (!roomId) return;
     setIsLoading(true);
     const { data, error } = await supabase
@@ -81,12 +85,34 @@ export function useRoomBookings(roomId: string | undefined) {
       .select("*")
       .eq("room_id", roomId)
       .order("starts_at", { ascending: true });
-    if (!error) setBookings((data ?? []) as Booking[]);
+    if (!error) {
+      const rows = (data ?? []) as Booking[];
+      setBookings(rows);
+      // currentStatus() (Free now / Busy until X) is derived from
+      // bookings + the current time on every render — without this, it
+      // would only ever re-evaluate when something else happened to
+      // trigger a refetch (another booking change), and could sit
+      // stale well past a booking's start/end time otherwise. Schedule
+      // a refresh for exactly the next boundary so it flips live.
+      const nowMs = Date.now();
+      const nextBoundary = rows
+        .flatMap(b => [new Date(b.starts_at).getTime(), new Date(b.ends_at).getTime()])
+        .filter(t => t > nowMs)
+        .sort((a, b) => a - b)[0];
+      if (nextBoundary !== undefined) {
+        const delay = Math.min(nextBoundary - nowMs + 250, MAX_TIMEOUT);
+        boundaryTimeoutRef.current = window.setTimeout(refresh, delay);
+      }
+    }
     setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   useEffect(() => {
     refresh();
+    return () => {
+      if (boundaryTimeoutRef.current) clearTimeout(boundaryTimeoutRef.current);
+    };
   }, [refresh]);
 
   // Double-booking is already prevented regardless of this — the
