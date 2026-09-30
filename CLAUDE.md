@@ -8,7 +8,7 @@ This is a **separate project** from DLP-Artists-hub (`artists.davidlewis.nl`) �
 
 - Vite + React 19 + TypeScript, path alias `@/*` → `src/*`.
 - Tailwind v4 via `@tailwindcss/vite` (no Preline dependency here — this app builds its own visual language from scratch, styled loosely after Artists Hub's conventions below but not required to match pixel-for-pixel).
-- Supabase (`src/integrations/supabase/client.ts`), auth via magic-link OTP email (no password).
+- Supabase (`src/integrations/supabase/client.ts`) for data only — **no auth for now**. The app is a public page for the whole office; anyone can view/create/edit/cancel a booking. `bookings` has a free-text `booked_by` name column instead of a `user_id`, and RLS grants full access to the `anon` role. If real auth is reintroduced later, that RLS model (migration `20260930130000_public_no_auth.sql`) needs to be revisited first — don't add a login page without also locking the policies back down.
 - `@tanstack/react-query` for data fetching, `react-router-dom` for routing, Radix UI for interactive primitives (tooltip/dialog/dropdown), `sonner` for toasts.
 - Local dev runs on port **8081** (Artists Hub uses 8080) so both can run side by side.
 
