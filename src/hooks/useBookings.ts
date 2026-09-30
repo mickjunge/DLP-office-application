@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type Booking = {
   id: string;
@@ -68,12 +67,61 @@ function forgetBooking(id: string) {
   writeMyBookings(readMyBookings().filter(b => b.id !== id));
 }
 
+// One-off broadcast on a room's channel — joins just long enough to
+// send, then leaves. Used by the standalone mutation functions below,
+// which (unlike useRoomBookings) aren't already holding an open
+// channel for a specific room, since a caller like "My reservations"
+// on the overview can be acting on a booking in any of several rooms.
+function broadcastRoomChanged(roomId: string) {
+  const channel = supabase.channel(`room:${roomId}`);
+  channel.subscribe(status => {
+    if (status === "SUBSCRIBED") {
+      channel.send({ type: "broadcast", event: "booking_changed", payload: {} });
+      supabase.removeChannel(channel);
+    }
+  });
+}
+
+// Standalone mutation functions — not tied to a specific room's
+// useRoomBookings instance, so they work from contexts spanning
+// multiple rooms (the overview's "My reservations" list) as well as
+// from within a single room's view (useRoomBookings wraps these).
+export async function updateBookingRpc(
+  bookingId: string,
+  input: { title: string; startsAt: string; endsAt: string }
+): Promise<Booking> {
+  const editToken = getEditToken(bookingId);
+  if (!editToken) throw new Error("This booking wasn't made from this device — no edit link is stored here.");
+  const { data, error } = await supabase.rpc("update_booking", {
+    p_booking_id: bookingId,
+    p_edit_token: editToken,
+    p_title: input.title,
+    p_starts_at: input.startsAt,
+    p_ends_at: input.endsAt,
+  });
+  if (error) throw error;
+  const booking = data as Booking;
+  broadcastRoomChanged(booking.room_id);
+  return booking;
+}
+
+export async function cancelBookingRpc(bookingId: string, roomId: string): Promise<void> {
+  const editToken = getEditToken(bookingId);
+  if (!editToken) throw new Error("This booking wasn't made from this device — no edit link is stored here.");
+  const { error } = await supabase.rpc("cancel_booking", {
+    p_booking_id: bookingId,
+    p_edit_token: editToken,
+  });
+  if (error) throw error;
+  forgetBooking(bookingId);
+  broadcastRoomChanged(roomId);
+}
+
 const MAX_TIMEOUT = 2_000_000_000; // setTimeout's delay is a 32-bit int; clamp well under that
 
 export function useRoomBookings(roomId: string | undefined) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const boundaryTimeoutRef = useRef<number | undefined>(undefined);
 
   const refresh = useCallback(async () => {
@@ -132,16 +180,10 @@ export function useRoomBookings(roomId: string | undefined) {
     const channel = supabase.channel(`room:${roomId}`);
     channel.on("broadcast", { event: "booking_changed" }, () => refresh());
     channel.subscribe();
-    channelRef.current = channel;
     return () => {
       supabase.removeChannel(channel);
-      channelRef.current = null;
     };
   }, [roomId, refresh]);
-
-  const notifyChanged = useCallback(() => {
-    channelRef.current?.send({ type: "broadcast", event: "booking_changed", payload: {} });
-  }, []);
 
   const createBooking = useCallback(
     async (input: { title: string; startsAt: string; endsAt: string; bookedBy: string }) => {
@@ -157,44 +199,31 @@ export function useRoomBookings(roomId: string | undefined) {
       const booking = data as Booking & { edit_token: string };
       rememberBooking(booking.id, booking.edit_token);
       await refresh();
-      notifyChanged();
+      broadcastRoomChanged(roomId);
       return booking;
     },
-    [roomId, refresh, notifyChanged]
+    [roomId, refresh]
   );
 
+  // Thin wrappers around the standalone RPC functions (which already
+  // broadcast on the right room's channel) that also refresh this
+  // hook's own local state, so a room's own detail view updates
+  // immediately without waiting on its own broadcast round-trip.
   const updateBooking = useCallback(
     async (bookingId: string, input: { title: string; startsAt: string; endsAt: string }) => {
-      const editToken = getEditToken(bookingId);
-      if (!editToken) throw new Error("This booking wasn't made from this device — no edit link is stored here.");
-      const { error } = await supabase.rpc("update_booking", {
-        p_booking_id: bookingId,
-        p_edit_token: editToken,
-        p_title: input.title,
-        p_starts_at: input.startsAt,
-        p_ends_at: input.endsAt,
-      });
-      if (error) throw error;
+      await updateBookingRpc(bookingId, input);
       await refresh();
-      notifyChanged();
     },
-    [refresh, notifyChanged]
+    [refresh]
   );
 
   const cancelBooking = useCallback(
     async (bookingId: string) => {
-      const editToken = getEditToken(bookingId);
-      if (!editToken) throw new Error("This booking wasn't made from this device — no edit link is stored here.");
-      const { error } = await supabase.rpc("cancel_booking", {
-        p_booking_id: bookingId,
-        p_edit_token: editToken,
-      });
-      if (error) throw error;
-      forgetBooking(bookingId);
+      if (!roomId) throw new Error("No room selected");
+      await cancelBookingRpc(bookingId, roomId);
       await refresh();
-      notifyChanged();
     },
-    [refresh, notifyChanged]
+    [roomId, refresh]
   );
 
   return { bookings, isLoading, createBooking, updateBooking, cancelBooking, refresh };

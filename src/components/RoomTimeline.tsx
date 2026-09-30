@@ -152,12 +152,22 @@ export default function RoomTimeline({
                 <div className="flex items-start justify-between gap-1">
                   <p className="text-[11px] font-medium text-gray-800 truncate">{b.title}</p>
                   {mine && (
-                    <div className="flex items-center gap-0.5 shrink-0 pointer-events-auto">
-                      <button type="button" onClick={() => onEdit(b)} title="Edit" className="text-gray-500 hover:text-gray-800 cursor-pointer">
-                        <Pencil className="h-2.5 w-2.5" />
+                    <div className="flex items-center gap-1 shrink-0 pointer-events-auto -mt-0.5 -mr-0.5">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(b)}
+                        title="Edit booking"
+                        className="size-5 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-colors cursor-pointer"
+                      >
+                        <Pencil className="h-3 w-3" />
                       </button>
-                      <button type="button" onClick={() => onCancel(b)} title="Cancel" className="text-gray-500 hover:text-gray-800 cursor-pointer">
-                        <X className="h-2.5 w-2.5" />
+                      <button
+                        type="button"
+                        onClick={() => onCancel(b)}
+                        title="Cancel booking"
+                        className="size-5 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-white hover:text-red-600 hover:shadow-sm transition-colors cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
                       </button>
                     </div>
                   )}

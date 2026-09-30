@@ -50,5 +50,5 @@ export function useMyReservations(rooms: { id: string; name: string }[]) {
     return () => clearInterval(interval);
   }, [refresh]);
 
-  return reservations;
+  return { reservations, refresh };
 }

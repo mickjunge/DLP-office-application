@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Tv } from "lucide-react";
+import { Users, Tv, Pencil, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import FloorPlan, { type RoomSlug } from "@/components/FloorPlan";
 import RoomDetailPanel, { type Room } from "@/components/RoomDetailPanel";
+import EditBookingModal from "@/components/EditBookingModal";
+import CancelBookingModal from "@/components/CancelBookingModal";
 import { useRoomsStatus } from "@/hooks/useRoomsStatus";
-import { useMyReservations } from "@/hooks/useMyReservations";
+import { useMyReservations, type MyReservation } from "@/hooks/useMyReservations";
+import { updateBookingRpc, cancelBookingRpc, type Booking } from "@/hooks/useBookings";
 
 const ROOM_NUMBERS: Record<string, string> = {
   "small-conference-room": "01",
@@ -51,7 +55,28 @@ export default function Home() {
     },
   });
 
-  const myReservations = useMyReservations(rooms ?? []);
+  const { reservations: myReservations, refresh: refreshMyReservations } = useMyReservations(rooms ?? []);
+
+  const [editingReservation, setEditingReservation] = useState<MyReservation | null>(null);
+  const [cancellingReservation, setCancellingReservation] = useState<MyReservation | null>(null);
+  // EditBookingModal needs the target room's other bookings for its
+  // conflict check — fetched on demand when the modal opens rather
+  // than kept loaded for every room all the time on the overview.
+  const [editingRoomBookings, setEditingRoomBookings] = useState<Booking[]>([]);
+  useEffect(() => {
+    if (!editingReservation) return;
+    let cancelled = false;
+    supabase
+      .from("bookings_public")
+      .select("*")
+      .eq("room_id", editingReservation.room_id)
+      .then(({ data }) => {
+        if (!cancelled) setEditingRoomBookings((data ?? []) as Booking[]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editingReservation]);
 
   const [selectedSlug, setSelectedSlug] = useState<RoomSlug | null>(null);
   const selectedRoom = rooms?.find(r => r.slug === selectedSlug) ?? null;
@@ -157,18 +182,37 @@ export default function Home() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">My reservations</p>
                   <div className="flex flex-col gap-3">
                     {myReservations.map(r => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => {
-                          const slug = rooms?.find(room => room.id === r.room_id)?.slug as RoomSlug | undefined;
-                          if (slug) setSelectedSlug(slug);
-                        }}
-                        className="text-left cursor-pointer group"
-                      >
-                        <p className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors truncate">{r.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
-                      </button>
+                      <div key={r.id} className="flex items-center justify-between gap-2 group">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const slug = rooms?.find(room => room.id === r.room_id)?.slug as RoomSlug | undefined;
+                            if (slug) setSelectedSlug(slug);
+                          }}
+                          className="text-left cursor-pointer min-w-0 flex-1"
+                        >
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors truncate">{r.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
+                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setEditingReservation(r)}
+                            title="Edit booking"
+                            className="size-7 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-800 focus:outline-hidden transition-colors cursor-pointer"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCancellingReservation(r)}
+                            title="Cancel booking"
+                            className="size-7 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-red-600 focus:outline-hidden transition-colors cursor-pointer"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -177,6 +221,33 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {editingReservation && (
+        <EditBookingModal
+          booking={editingReservation}
+          roomName={editingReservation.roomName}
+          bookings={editingRoomBookings}
+          onClose={() => setEditingReservation(null)}
+          onSave={async input => {
+            await updateBookingRpc(editingReservation.id, input);
+            toast.success("Booking updated");
+            await refreshMyReservations();
+          }}
+        />
+      )}
+
+      {cancellingReservation && (
+        <CancelBookingModal
+          booking={cancellingReservation}
+          roomName={cancellingReservation.roomName}
+          onClose={() => setCancellingReservation(null)}
+          onConfirm={async () => {
+            await cancelBookingRpc(cancellingReservation.id, cancellingReservation.room_id);
+            toast.success("Booking cancelled");
+            await refreshMyReservations();
+          }}
+        />
+      )}
     </div>
   );
 }
