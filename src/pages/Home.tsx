@@ -14,7 +14,7 @@ export default function Home() {
       {/* Softens the hard edge between the floorplan and the title/nav
           sitting over it on the left — plain white fading to transparent,
           not a visible panel. */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white via-white/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-white via-white/80 to-transparent" />
 
       <h1 className="absolute top-10 left-10 md:top-14 md:left-16 text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
         Reserve a room
