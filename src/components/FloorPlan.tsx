@@ -42,13 +42,13 @@ export default function FloorPlan({
   const target = !introDone ? FULL_BUILDING : zoomTo === "overview" ? OVERVIEW : ROOM_ZOOM[zoomTo];
   const viewBox = useAnimatedViewBox(target, FULL_BUILDING, 900);
   // Overview: every room shows its live status. Zoomed into a specific
-  // room: only that room keeps its status color — the others (mostly
-  // out of frame anyway, but sometimes partially visible at the edges)
-  // revert to the plain neutral tint instead of showing red/green for
-  // a room that isn't the one being looked at.
+  // room: only that room keeps its status color — the other two go
+  // plain white (not the neutral blue tint) until back on the overview,
+  // so nothing but the selected room draws the eye.
   const roomClass = (slug: RoomSlug) => {
-    const showStatus = zoomTo === "overview" || zoomTo === slug;
-    return showStatus ? (busySlugs?.has(slug) ? "status-busy" : "status-available") : "bookable";
+    if (zoomTo === "overview") return busySlugs?.has(slug) ? "status-busy" : "status-available";
+    if (zoomTo === slug) return busySlugs?.has(slug) ? "status-busy" : "status-available";
+    return "status-hidden";
   };
 
   return (
@@ -66,8 +66,8 @@ export default function FloorPlan({
       className="absolute inset-0 w-full h-full select-none"
     >
       <style>{`
-        .bookable { fill: #eff6ff; cursor: pointer; transition: fill .2s ease; }
-        .bookable:hover { fill: #dbeafe; }
+        .status-hidden { fill: #ffffff; cursor: pointer; transition: fill .2s ease; }
+        .status-hidden:hover { fill: #f3f4f6; }
         .status-available { fill: #dcfce7; cursor: pointer; transition: fill .2s ease; }
         .status-available:hover { fill: #bbf7d0; }
         .status-busy { fill: #fee2e2; cursor: pointer; transition: fill .2s ease; }
