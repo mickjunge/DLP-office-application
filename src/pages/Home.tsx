@@ -2,12 +2,13 @@ import FloorPlan from "@/components/FloorPlan";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#f9f9f9] px-6 py-6">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-lg font-semibold text-gray-800">Office Hub</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Click a room to view or book it.</p>
+    <div className="h-screen w-screen overflow-hidden bg-[#f9f9f9] relative">
+      <h1 className="absolute top-10 right-10 md:top-14 md:right-16 text-4xl md:text-5xl font-bold text-gray-900 tracking-tight text-right">
+        Book a room
+      </h1>
 
-        <div className="mt-6 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] p-5">
+      <div className="h-full w-full flex items-center justify-end pr-10 md:pr-24">
+        <div className="h-[80vh] animate-in fade-in zoom-in-90 duration-700 ease-out">
           <FloorPlan />
         </div>
       </div>
