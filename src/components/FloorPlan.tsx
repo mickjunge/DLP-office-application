@@ -32,7 +32,7 @@ export default function FloorPlan() {
       <style>{`
         .bookable { fill: #eff6ff; cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #dbeafe; }
-        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #ffffff; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
       `}</style>
       <rect x={-1066} y={-11} width={1080} height={1187} fill="#fff" />
       <g transform="rotate(90)">
@@ -80,28 +80,17 @@ export default function FloorPlan() {
           d="M1130.50 34.00 L1130.50 31.50 L1125.50 31.50 L39.50 31.50 L37.00 31.50 L34.50 31.50 L34.50 36.50 L34.50 1015.50 L34.50 1018.00 L34.50 1020.50 L39.50 1020.50 L1125.50 1020.50 L1128.00 1020.50 L1130.50 1020.50 L1130.50 1015.50 L1130.50 36.50 L1130.50 34.00Z M430.62 238.38 L433.38 238.38 L622.62 238.38 L625.38 238.38 L815.62 238.38 L818.38 238.38 L1007.62 238.38 L1010.38 238.38 L1125.50 238.38 L1125.50 428.62 L1014.50 428.62 L1014.50 427.50 L1014.50 425.00 L1014.50 422.50 L1009.50 422.50 L812.50 422.50 L810.00 422.50 L807.50 422.50 L807.50 427.50 L807.50 627.50 L807.50 630.00 L807.50 632.50 L812.50 632.50 L928.00 632.50 L930.50 632.50 L930.50 627.50 L812.50 627.50 L812.50 556.38 L871.62 556.38 L874.38 556.38 L923.00 556.38 L924.38 556.38 L924.38 553.62 L874.38 553.62 L874.38 456.38 L921.62 456.38 L921.62 525.00 L921.62 526.38 L924.38 526.38 L924.38 456.38 L924.38 453.62 L924.38 427.50 L1009.50 427.50 L1009.50 627.50 L1004.00 627.50 L1001.50 627.50 L1001.50 632.50 L1009.50 632.50 L1010.62 632.50 L1010.62 684.62 L1010.62 687.38 L1010.62 813.62 L1010.62 815.00 L1010.62 816.38 L1013.38 816.38 L1125.50 816.38 L1125.50 875.62 L1009.38 875.62 L1006.62 875.62 L883.38 875.62 L880.62 875.62 L750.38 875.62 L747.62 875.62 L498.38 875.62 L495.62 875.62 L241.38 875.62 L241.38 873.00 L241.38 871.62 L238.62 871.62 L238.62 875.62 L238.62 878.38 L238.62 1015.50 L39.50 1015.50 L39.50 816.38 L238.62 816.38 L238.62 819.00 L238.62 820.38 L241.38 820.38 L241.38 816.38 L322.62 816.38 L324.00 816.38 L325.38 816.38 L325.38 813.62 L325.38 645.00 L325.38 643.62 L322.62 643.62 L322.62 813.62 L241.38 813.62 L238.62 813.62 L39.50 813.62 L39.50 621.38 L173.62 621.38 L176.38 621.38 L239.62 621.38 L239.62 775.00 L239.62 776.38 L242.38 776.38 L242.38 621.38 L260.62 621.38 L262.00 621.38 L263.38 621.38 L263.38 618.62 L263.38 516.38 L327.00 516.38 L328.38 516.38 L328.38 513.62 L263.38 513.62 L260.62 513.62 L176.38 513.62 L175.00 513.62 L173.62 513.62 L173.62 516.38 L173.62 580.38 L39.50 580.38 L39.50 516.38 L120.62 516.38 L122.00 516.38 L123.38 516.38 L123.38 513.62 L123.38 431.38 L194.62 431.38 L196.00 431.38 L197.38 431.38 L197.38 428.62 L197.38 238.38 L236.62 238.38 L239.38 238.38 L430.62 238.38Z M1010.38 235.62 L1010.38 36.50 L1125.50 36.50 L1125.50 235.62 L1010.38 235.62Z M818.38 235.62 L818.38 36.50 L1007.62 36.50 L1007.62 235.62 L818.38 235.62Z M197.38 235.62 L194.62 235.62 L39.50 235.62 L39.50 36.50 L236.62 36.50 L236.62 235.62 L197.38 235.62Z M430.62 36.50 L430.62 235.62 L239.38 235.62 L239.38 36.50 L430.62 36.50Z M622.62 36.50 L622.62 235.62 L433.38 235.62 L433.38 36.50 L622.62 36.50Z M123.38 428.62 L122.00 428.62 L120.62 428.62 L120.62 431.38 L120.62 513.62 L39.50 513.62 L39.50 238.38 L194.62 238.38 L194.62 428.62 L123.38 428.62Z M176.38 516.38 L260.62 516.38 L260.62 580.38 L176.38 580.38 L176.38 516.38Z M39.50 618.62 L39.50 581.62 L173.62 581.62 L173.62 618.62 L39.50 618.62Z M239.62 618.62 L176.38 618.62 L176.38 581.62 L260.62 581.62 L260.62 618.62 L242.38 618.62 L239.62 618.62Z M625.38 235.62 L625.38 36.50 L815.62 36.50 L815.62 235.62 L625.38 235.62Z M241.38 878.38 L495.62 878.38 L495.62 1015.50 L241.38 1015.50 L241.38 878.38Z M871.62 456.38 L871.62 553.62 L812.50 553.62 L812.50 456.38 L871.62 456.38Z M874.38 453.62 L871.62 453.62 L812.50 453.62 L812.50 427.50 L921.62 427.50 L921.62 453.62 L874.38 453.62Z M1009.38 878.38 L1125.50 878.38 L1125.50 1015.50 L1009.38 1015.50 L1009.38 878.38Z M883.38 878.38 L1006.62 878.38 L1006.62 1015.50 L883.38 1015.50 L883.38 878.38Z M750.38 878.38 L880.62 878.38 L880.62 1015.50 L750.38 1015.50 L750.38 878.38Z M498.38 1015.50 L498.38 878.38 L747.62 878.38 L747.62 1015.50 L498.38 1015.50Z M1014.50 431.38 L1125.50 431.38 L1125.50 684.62 L1013.38 684.62 L1013.38 632.50 L1014.50 632.50 L1014.50 627.50 L1014.50 431.38Z M1013.38 687.38 L1125.50 687.38 L1125.50 813.62 L1013.38 813.62 L1013.38 687.38Z M369.62 563.62 L369.62 566.38 L369.62 628.62 L369.62 630.00 L369.62 631.38 L372.38 631.38 L518.62 631.38 L520.00 631.38 L521.38 631.38 L521.38 628.62 L521.38 609.38 L736.62 609.38 L738.00 609.38 L739.38 609.38 L739.38 606.62 L739.38 398.00 L739.38 396.62 L736.62 396.62 L736.62 397.38 L372.38 397.38 L372.38 396.62 L369.62 396.62 L369.62 563.62Z M372.38 566.38 L518.62 566.38 L518.62 606.62 L518.62 609.38 L518.62 628.62 L372.38 628.62 L372.38 566.38Z M372.38 428.62 L518.62 428.62 L518.62 563.62 L372.38 563.62 L372.38 428.62Z M736.62 428.62 L736.62 606.62 L521.38 606.62 L521.38 566.38 L521.38 563.62 L521.38 428.62 L736.62 428.62Z M736.62 398.62 L736.62 427.38 L521.38 427.38 L521.38 426.62 L518.62 426.62 L518.62 427.38 L372.38 427.38 L372.38 398.62 L736.62 398.62Z M808.62 282.38 L808.62 385.62 L808.62 387.00 L808.62 388.38 L811.38 388.38 L949.62 388.38 L951.00 388.38 L952.38 388.38 L952.38 385.62 L952.38 282.38 L952.38 281.00 L952.38 279.62 L949.62 279.62 L811.38 279.62 L810.00 279.62 L808.62 279.62 L808.62 282.38Z M811.38 282.38 L949.62 282.38 L949.62 385.62 L811.38 385.62 L811.38 282.38Z"
         />
 
-        {/* Room number badges, top-to-bottom in the final rendered
-            orientation: 01 Small conference, 02 Big conference, 03
-            Studio. A previous version drew a rounded blue border around
-            each whole room — that looked wrong against the real walls'
-            sharp corners (a room's actual shape shouldn't be rounded)
-            and introduced a second, mismatched stroke competing with the
-            walls path's real thickness. A small rounded badge is instead
-            floated at each room's corner (like a numbered map pin) —
-            it's a UI chip, not part of the architecture, so its
-            roundness doesn't clash. Anchored near each room's final
-            top-left corner — under this group's rotate(90), that
-            corresponds to each room's pre-rotation bottom-left corner
-            (x, y+h), inset by 22 units. The circle itself needs no
-            counter-rotation (rotation-symmetric), but its text does —
-            same fix as the earlier label-position bug, otherwise it
-            renders sideways. */}
+        {/* Room numbers, top-to-bottom in the final rendered orientation:
+            01 Small conference, 02 Big conference, 03 Studio. Anchored
+            near each room's final top-left corner — under this group's
+            rotate(90), that corresponds to each room's pre-rotation
+            bottom-left corner (x, y+h), inset by 22 units. Each is also
+            counter-rotated -90° around its own anchor to cancel the
+            parent <g>'s rotate(90) (same fix as the earlier label bug —
+            otherwise these render sideways too). */}
         <g id="room-numbers">
-          <circle cx={395} cy={543} r={15} fill="#2563eb" />
           <text className="room-number" x={395} y={543} transform="rotate(-90 395 543)">01</text>
-          <circle cx={542} cy={588} r={15} fill="#2563eb" />
           <text className="room-number" x={542} y={588} transform="rotate(-90 542 588)">02</text>
-          <circle cx={832} cy={365} r={15} fill="#2563eb" />
           <text className="room-number" x={832} y={365} transform="rotate(-90 832 365)">03</text>
         </g>
       </g>
