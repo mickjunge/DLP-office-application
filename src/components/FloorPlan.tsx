@@ -56,11 +56,16 @@ export default function FloorPlan() {
           <rect x={882} y={877} width={126} height={141} fill="#F9FAFB" />
           <rect x={1008} y={877} width={120} height={141} fill="#F9FAFB" />
 
-          {/* Bookable rooms — click-to-navigate disabled for now, see
-              file header comment */}
-          <rect x={810} y={281} width={141} height={106} rx={10} className="bookable" />
-          <rect x={373} y={429} width={147} height={136} rx={10} className="bookable" />
-          <rect x={520} y={425} width={218} height={185} rx={10} className="bookable" />
+          {/* Bookable rooms — inset 3 units from the room's true bounds
+              so the fill sits inside the wall lines instead of bleeding
+              under/past them (walls have real thickness, drawn straddling
+              the room boundary). Sharp corners (no rx) to match the real
+              architecture — see the earlier fix for why a rounded fill
+              read as wrong here. Click-to-navigate disabled for now, see
+              file header comment. */}
+          <rect x={813} y={284} width={135} height={100} className="bookable" />
+          <rect x={376} y={432} width={141} height={130} className="bookable" />
+          <rect x={523} y={428} width={212} height={179} className="bookable" />
         </g>
 
         {/* Only the furniture inside the two bookable conference rooms is
@@ -72,6 +77,29 @@ export default function FloorPlan() {
         <g id="furniture">
           <circle cx={447} cy={493} r={31} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
           <rect x={573} y={497} width={132} height={41} rx={3} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+
+          {/* Chairs — 5 around the round table (matches capacity 5),
+              6 per long side of the rectangular table (12 total, matches
+              capacity 12). Positions computed from the table geometry
+              above, not eyeballed. */}
+          <circle cx={447} cy={452} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={486} cy={480.3} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={471.1} cy={526.2} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={422.9} cy={526.2} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={408} cy={480.3} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+
+          <circle cx={584} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={606} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={628} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={650} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={672} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={694} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={584} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={606} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={628} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={650} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={672} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={694} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
         </g>
 
         <path
