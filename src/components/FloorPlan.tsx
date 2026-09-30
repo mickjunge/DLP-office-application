@@ -8,16 +8,17 @@ export default function FloorPlan() {
   const navigate = useNavigate();
 
   return (
-    // Fills the entire viewport like a background image (w-full h-full +
-    // preserveAspectRatio="slice", same idea as CSS object-fit: cover) —
-    // no sized/positioned box, so there's nothing to look "boxed" or
-    // "cropped" against. viewBox starts on the full building, then the
-    // <animate> zooms it toward the three bookable rooms; slice mode
-    // means it's always covering the full screen at every point in that
-    // animation, just showing a different window into the same plan.
+    // Fills the entire viewport (w-full h-full, absolute inset-0). Uses
+    // preserveAspectRatio="meet" (the default) rather than "slice": slice
+    // crops whichever axis overflows to guarantee full coverage, which
+    // for this portrait-shaped room crop inside a landscape browser
+    // window cropped away Studio almost entirely. Meet always shows the
+    // complete viewBox, letterboxing only the shorter axis — and since
+    // that letterbox is plain white against a white page, it's invisible
+    // rather than looking like a visible box.
     <svg
       viewBox="-1040.5 14.5 1029 1136"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMid meet"
       className="absolute inset-0 w-full h-full select-none"
     >
       <animate
