@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Tv } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,34 @@ export default function Home() {
   const [selectedSlug, setSelectedSlug] = useState<RoomSlug | null>(null);
   const selectedRoom = rooms?.find(r => r.slug === selectedSlug) ?? null;
 
+  // Slide in/out on the panel content: React can't animate an exit on
+  // its own (a conditional swap just unmounts instantly), so this
+  // tracks the content that's actually on screen separately from
+  // selectedSlug, and delays swapping it until the exit animation has
+  // had time to play. "forward" = heading into (or between) rooms,
+  // slides right-to-left; "back" = heading to the nav list, mirrors it.
+  const currentKey = selectedSlug ?? "nav";
+  const [displayedKey, setDisplayedKey] = useState<string>("nav");
+  const [phase, setPhase] = useState<"idle" | "exiting">("idle");
+  const direction = currentKey === "nav" ? "back" : "forward";
+
+  useEffect(() => {
+    if (currentKey === displayedKey) return;
+    setPhase("exiting");
+    const t = setTimeout(() => {
+      setDisplayedKey(currentKey);
+      setPhase("idle");
+    }, 200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentKey]);
+
+  const displayedRoom = rooms?.find(r => r.slug === displayedKey) ?? null;
+  const panelAnimClass =
+    phase === "exiting"
+      ? `animate-out fade-out duration-200 ${direction === "forward" ? "slide-out-to-left-4" : "slide-out-to-right-4"}`
+      : `animate-in fade-in duration-300 ${direction === "forward" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`;
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-white relative animate-in fade-in duration-1000">
       <FloorPlan
@@ -78,32 +106,34 @@ export default function Home() {
       />
 
       <div className="absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full max-w-sm overflow-y-auto">
-        {selectedRoom ? (
-          <RoomDetailPanel room={selectedRoom} onBack={() => setSelectedSlug(null)} />
-        ) : (
-          <>
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">Reserve a room</h1>
+        <div key={displayedKey + phase} className={panelAnimClass}>
+          {displayedRoom ? (
+            <RoomDetailPanel room={displayedRoom} onBack={() => setSelectedSlug(null)} />
+          ) : (
+            <>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">Reserve a room</h1>
 
-            <nav className="mt-8 flex flex-col gap-4">
-              {rooms?.map(room => (
-                <button
-                  key={room.slug}
-                  type="button"
-                  onClick={() => setSelectedSlug(room.slug as RoomSlug)}
-                  className="text-left cursor-pointer group"
-                >
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-sm font-semibold text-gray-400">{ROOM_NUMBERS[room.slug]}</span>
-                    <span className="text-lg font-medium text-gray-900 group-hover:text-blue-700 transition-colors">{room.name}</span>
-                  </div>
-                  <div className="pl-8">
-                    <RoomBadges room={room} />
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </>
-        )}
+              <nav className="mt-8 flex flex-col gap-4">
+                {rooms?.map(room => (
+                  <button
+                    key={room.slug}
+                    type="button"
+                    onClick={() => setSelectedSlug(room.slug as RoomSlug)}
+                    className="text-left cursor-pointer group"
+                  >
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-sm font-semibold text-gray-400">{ROOM_NUMBERS[room.slug]}</span>
+                      <span className="text-lg font-medium text-gray-900 group-hover:text-blue-700 transition-colors">{room.name}</span>
+                    </div>
+                    <div className="pl-8">
+                      <RoomBadges room={room} />
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
