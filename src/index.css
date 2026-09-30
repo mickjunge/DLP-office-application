@@ -1,13 +1,30 @@
 @import "tailwindcss";
 
+/* Preline UI */
+@source "../node_modules/preline/dist/*.js";
+@import "../node_modules/preline/variants.css";
+
+/* Plugins */
+@plugin "@tailwindcss/typography";
+@plugin "tailwindcss-animate";
+
+/* Preline Themes */
+@import "./themes/theme.css";
+
+/* ── Base ──────────────────────────────────────────────────── */
 @layer base {
   html, body {
+    background-color: black;
     height: 100%;
+    overscroll-behavior: none;
   }
 
+  * { border-color: hsl(var(--border)); outline: none; }
+  *:focus-visible { outline: none; box-shadow: none; }
+
   body {
-    background-color: #f9f9f9;
-    color: #1f2937;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
@@ -19,22 +36,46 @@
   h1, h2, h3, h4 { letter-spacing: -0.025em; }
 }
 
-/* Success checkmark animation — see CLAUDE.md "Success confirmation" */
-@layer components {
-  .success-check-circle {
-    stroke-dasharray: 95;
-    stroke-dashoffset: 95;
-    animation: success-check-circle 0.4s ease-out forwards;
-  }
-  .success-check-mark {
-    stroke-dasharray: 20;
-    stroke-dashoffset: 20;
-    animation: success-check-mark 0.3s ease-out 0.3s forwards;
-  }
-  @keyframes success-check-circle {
-    to { stroke-dashoffset: 0; }
-  }
-  @keyframes success-check-mark {
-    to { stroke-dashoffset: 0; }
-  }
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes success-circle {
+  from { stroke-dashoffset: 76; }
+  to   { stroke-dashoffset: 0; }
 }
+@keyframes success-check {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+.success-check-circle {
+  stroke-dasharray: 76;
+  stroke-dashoffset: 76;
+  animation: success-circle 0.4s ease-out forwards;
+}
+.success-check-mark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: success-check 0.25s ease-out 0.35s forwards;
+}
+
+/* ── Sonner toasts ─────────────────────────────────────────── */
+[data-sonner-toast][data-styled=true] {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+  border-radius: 14px !important;
+}
+[data-sonner-toast][data-styled=true][data-type="error"] {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #b91c1c !important;
+}
+[data-sonner-toast][data-styled=true][data-type="error"] [data-title],
+[data-sonner-toast][data-styled=true][data-type="error"] [data-description] { color: #b91c1c !important; }
+[data-sonner-toast][data-styled=true][data-type="error"] [data-icon] { color: #dc2626 !important; }
+[data-sonner-toast][data-styled=true][data-type="success"] {
+  background: #f0fdfa !important;
+  border: 1px solid #99f6e4 !important;
+  color: #115e59 !important;
+}
+[data-sonner-toast][data-styled=true][data-type="success"] [data-title],
+[data-sonner-toast][data-styled=true][data-type="success"] [data-description] { color: #115e59 !important; }
+[data-sonner-toast][data-styled=true][data-type="success"] [data-icon] { color: #0d9488 !important; }
