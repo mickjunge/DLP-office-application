@@ -17,7 +17,7 @@ function RoomBadges({ room }: { room: Room }) {
     <div className="flex items-center gap-3 mt-1">
       <span className={`inline-flex items-center gap-1 text-xs font-medium ${room.capacity ? "text-gray-500" : "text-gray-300"}`}>
         <Users className="h-3.5 w-3.5" />
-        {room.capacity ?? "—"}
+        {room.capacity ? `${room.capacity} seats` : "Seats N/A"}
       </span>
       <span className={`inline-flex items-center gap-1 text-xs font-medium ${room.has_tv ? "text-gray-500" : "text-gray-300"}`}>
         <Tv className="h-3.5 w-3.5" />
@@ -58,10 +58,24 @@ export default function Home() {
           blank margin and do nothing, the same invisible-fade mistake
           from earlier in this project. Widened so it actually reaches
           the drawn content, confirmed by rendering the big-conference-
-          room zoom at 1440px: content starts at ~43%. */}
-      {selectedRoom && (
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-white via-white/80 to-transparent animate-in fade-in duration-300" />
-      )}
+          room zoom at 1440px: content starts at ~43%.
+
+          Stop positions matter as much as width here: a default
+          from/via/to gradient starts fading almost immediately, so by
+          the time it reached real content it was already mostly
+          transparent. from-70%/to-100% keeps it fully solid until 70%
+          of this div's own width (~42% of the screen, right where
+          content begins) and only fades out after that.
+
+          Always mounted (not conditionally rendered) so opacity can
+          transition both ways — appearing when a room is selected,
+          and fading back out over the same ~900ms as the floorplan's
+          own zoom-out when going Back, instead of vanishing instantly
+          the moment selectedRoom clears. pointer-events-none means it
+          being present-but-invisible at opacity-0 has no effect. */}
+      <div
+        className={`pointer-events-none absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-white from-70% to-transparent to-100% transition-opacity duration-[900ms] ease-out ${selectedRoom ? "opacity-100" : "opacity-0"}`}
+      />
 
       <div className="absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full max-w-sm overflow-y-auto">
         {selectedRoom ? (
