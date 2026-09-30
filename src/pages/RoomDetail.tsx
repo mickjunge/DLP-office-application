@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Pencil, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRoomBookings, useMyBookingIds, type Booking } from "@/hooks/useBookings";
+import RoomTimeline, { currentStatus } from "@/components/RoomTimeline";
 
 type Room = {
   id: string;
@@ -16,11 +17,12 @@ type Room = {
 
 const inputCls = "h-9 w-full px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-800 placeholder:text-gray-500 focus:outline-hidden focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:text-gray-800 disabled:pointer-events-none";
 
-function toLocalInputValue(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const DURATIONS = [
+  { label: "15 min", minutes: 15 },
+  { label: "30 min", minutes: 30 },
+  { label: "1 hr", minutes: 60 },
+  { label: "1.5 hr", minutes: 90 },
+];
 
 function friendlyError(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
@@ -28,30 +30,52 @@ function friendlyError(err: unknown): string {
   return message;
 }
 
+function toDateInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function toTimeInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+type FormValues = { title: string; bookedBy: string; date: string; startTime: string; endTime: string };
+
 function BookingForm({
+  editing,
   initial,
-  submitLabel,
   onSubmit,
   onCancel,
 }: {
-  initial?: { title: string; bookedBy?: string; startsAt: string; endsAt: string };
-  submitLabel: string;
+  editing?: boolean;
+  initial: FormValues;
   onSubmit: (input: { title: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
   onCancel?: () => void;
 }) {
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [bookedBy, setBookedBy] = useState(initial?.bookedBy ?? "");
-  const [startsAt, setStartsAt] = useState(initial ? toLocalInputValue(initial.startsAt) : "");
-  const [endsAt, setEndsAt] = useState(initial ? toLocalInputValue(initial.endsAt) : "");
+  const [values, setValues] = useState<FormValues>(initial);
   const [submitting, setSubmitting] = useState(false);
-  const showBookedBy = initial?.bookedBy === undefined ? true : false; // hide on edit, name doesn't change
+  const set = <K extends keyof FormValues>(key: K, v: FormValues[K]) => setValues(prev => ({ ...prev, [key]: v }));
+
+  const applyDuration = (minutes: number) => {
+    if (!values.startTime) return;
+    const [h, m] = values.startTime.split(":").map(Number);
+    const total = h * 60 + m + minutes;
+    const endH = Math.floor(total / 60) % 24;
+    const endM = total % 60;
+    set("endTime", `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !startsAt || !endsAt || (showBookedBy && !bookedBy)) return;
+    if (!values.title || !values.date || !values.startTime || !values.endTime || (!editing && !values.bookedBy)) return;
     setSubmitting(true);
     try {
-      await onSubmit({ title, bookedBy, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString() });
+      await onSubmit({
+        title: values.title,
+        bookedBy: values.bookedBy,
+        startsAt: new Date(`${values.date}T${values.startTime}`).toISOString(),
+        endsAt: new Date(`${values.date}T${values.endTime}`).toISOString(),
+      });
     } catch (err) {
       toast.error(friendlyError(err));
     } finally {
@@ -63,23 +87,39 @@ function BookingForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-800">Title<span className="text-red-400 ml-0.5">*</span></label>
-        <input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Team standup" autoFocus />
+        <input className={inputCls} value={values.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Team standup" />
       </div>
-      {showBookedBy && (
+      {!editing && (
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-800">Your name<span className="text-red-400 ml-0.5">*</span></label>
-          <input className={inputCls} value={bookedBy} onChange={e => setBookedBy(e.target.value)} placeholder="e.g. Mick" />
+          <input className={inputCls} value={values.bookedBy} onChange={e => set("bookedBy", e.target.value)} placeholder="e.g. Mick" />
         </div>
       )}
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-800">Date<span className="text-red-400 ml-0.5">*</span></label>
+        <input type="date" className={inputCls} value={values.date} onChange={e => set("date", e.target.value)} />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-800">Starts<span className="text-red-400 ml-0.5">*</span></label>
-          <input type="datetime-local" className={inputCls} value={startsAt} onChange={e => setStartsAt(e.target.value)} />
+          <label className="block mb-2 text-sm font-medium text-gray-800">Start<span className="text-red-400 ml-0.5">*</span></label>
+          <input type="time" className={inputCls} value={values.startTime} onChange={e => set("startTime", e.target.value)} />
         </div>
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-800">Ends<span className="text-red-400 ml-0.5">*</span></label>
-          <input type="datetime-local" className={inputCls} value={endsAt} onChange={e => setEndsAt(e.target.value)} />
+          <label className="block mb-2 text-sm font-medium text-gray-800">End<span className="text-red-400 ml-0.5">*</span></label>
+          <input type="time" className={inputCls} value={values.endTime} onChange={e => set("endTime", e.target.value)} />
         </div>
+      </div>
+      <div className="flex items-center gap-1.5 -mt-1">
+        {DURATIONS.map(d => (
+          <button
+            key={d.label}
+            type="button"
+            onClick={() => applyDuration(d.minutes)}
+            className="text-[11px] font-medium px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
+          >
+            {d.label}
+          </button>
+        ))}
       </div>
       <div className="flex justify-end items-center gap-2">
         {onCancel && (
@@ -92,81 +132,27 @@ function BookingForm({
           disabled={submitting}
           className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-white/10 bg-neutral-700 text-white shadow-sm hover:bg-neutral-600 focus:outline-hidden transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
         >
-          {submitting ? "Saving…" : submitLabel}
+          {submitting ? "Saving…" : editing ? "Save" : "Book"}
         </button>
       </div>
     </form>
   );
 }
 
-function BookingRow({
-  booking,
-  isMine,
-  onUpdate,
-  onCancel,
-}: {
-  booking: Booking;
-  isMine: boolean;
-  onUpdate: (id: string, input: { title: string; startsAt: string; endsAt: string }) => Promise<void>;
-  onCancel: (id: string) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-
-  const handleCancel = async () => {
-    if (!confirm(`Cancel "${booking.title}"?`)) return;
-    setCancelling(true);
-    try {
-      await onCancel(booking.id);
-      toast.success("Booking cancelled");
-    } catch (err) {
-      toast.error(friendlyError(err));
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  if (editing) {
-    return (
-      <div className="py-3 border-b border-gray-100 last:border-0">
-        <BookingForm
-          initial={{ title: booking.title, startsAt: booking.starts_at, endsAt: booking.ends_at }}
-          submitLabel="Save"
-          onCancel={() => setEditing(false)}
-          onSubmit={async input => {
-            await onUpdate(booking.id, input);
-            setEditing(false);
-            toast.success("Booking updated");
-          }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="py-3 border-b border-gray-100 last:border-0 flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{booking.title}</p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {new Date(booking.starts_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} – {new Date(booking.ends_at).toLocaleTimeString([], { timeStyle: "short" })} · {booking.booked_by}
-        </p>
-      </div>
-      {isMine && (
-        <div className="flex items-center gap-1 shrink-0">
-          <button type="button" onClick={() => setEditing(true)} title="Edit" className="size-8 inline-flex justify-center items-center rounded-lg bg-gray-100 border border-transparent text-gray-800 hover:bg-gray-200 focus:outline-hidden cursor-pointer">
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={handleCancel} disabled={cancelling} title="Cancel" className="size-8 inline-flex justify-center items-center rounded-lg bg-gray-100 border border-transparent text-gray-800 hover:bg-gray-200 focus:outline-hidden cursor-pointer disabled:opacity-40">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-    </div>
-  );
+function defaultFormValues(date?: Date): FormValues {
+  const d = date ?? new Date();
+  const start = new Date(d);
+  if (!date) { start.setMinutes(0, 0, 0); start.setHours(start.getHours() + 1); } // next full hour if no explicit slot
+  const end = new Date(start.getTime() + 30 * 60000);
+  return { title: "", bookedBy: "", date: toDateInputValue(d), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
 }
 
 export default function RoomDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const formRef = useRef<HTMLDivElement>(null);
+  const [formKey, setFormKey] = useState(0);
+  const [formValues, setFormValues] = useState<FormValues>(() => defaultFormValues());
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   const { data: room, isLoading: roomLoading } = useQuery({
     queryKey: ["room", slug],
@@ -180,6 +166,38 @@ export default function RoomDetail() {
 
   const { bookings, isLoading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useRoomBookings(room?.id);
   const myBookingIds = useMyBookingIds();
+  const status = currentStatus(bookings);
+
+  const handleSlotClick = (date: Date) => {
+    setEditingBooking(null);
+    setFormValues(defaultFormValues(date));
+    setFormKey(k => k + 1);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast("Time filled in below", { duration: 1500 });
+  };
+
+  const handleEdit = (booking: Booking) => {
+    setEditingBooking(booking);
+    setFormValues({
+      title: booking.title,
+      bookedBy: booking.booked_by,
+      date: toDateInputValue(new Date(booking.starts_at)),
+      startTime: toTimeInputValue(new Date(booking.starts_at)),
+      endTime: toTimeInputValue(new Date(booking.ends_at)),
+    });
+    setFormKey(k => k + 1);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const handleCancel = async (booking: Booking) => {
+    if (!confirm(`Cancel "${booking.title}"?`)) return;
+    try {
+      await cancelBooking(booking.id);
+      toast.success("Booking cancelled");
+    } catch (err) {
+      toast.error(friendlyError(err));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f9f9f9] px-6 py-6">
@@ -195,46 +213,55 @@ export default function RoomDetail() {
           ) : !room ? (
             <p className="text-sm text-gray-500">Room not found.</p>
           ) : (
-            <>
-              <p className="text-base font-semibold text-gray-800">{room.name}</p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {room.capacity ? `${room.capacity} seats · ` : ""}{room.location === "studio" ? "Studio" : "Office"}
-              </p>
-            </>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-800">{room.name}</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {room.capacity ? `${room.capacity} seats · ` : ""}{room.location === "studio" ? "Studio" : "Office"}
+                </p>
+              </div>
+              <span className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-md ${status.busy ? "bg-amber-50 text-amber-600 border border-amber-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+                {status.label}
+              </span>
+            </div>
           )}
         </div>
 
         {room && (
           <>
-            <div className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
-              <p className="text-base font-semibold text-gray-800 mb-3">Book this room</p>
+            <div ref={formRef} className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
+              <p className="text-base font-semibold text-gray-800 mb-3">{editingBooking ? "Edit booking" : "Book this room"}</p>
               <BookingForm
-                submitLabel="Book"
+                key={formKey}
+                editing={!!editingBooking}
+                initial={formValues}
+                onCancel={editingBooking ? () => { setEditingBooking(null); setFormValues(defaultFormValues()); setFormKey(k => k + 1); } : undefined}
                 onSubmit={async input => {
-                  await createBooking(input);
-                  toast.success("Booked");
+                  if (editingBooking) {
+                    await updateBooking(editingBooking.id, input);
+                    setEditingBooking(null);
+                    toast.success("Booking updated");
+                  } else {
+                    await createBooking(input);
+                    toast.success("Booked");
+                  }
+                  setFormValues(defaultFormValues());
+                  setFormKey(k => k + 1);
                 }}
               />
             </div>
 
             <div className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
-              <p className="text-base font-semibold text-gray-800 mb-1">Upcoming bookings</p>
               {bookingsLoading ? (
-                <p className="text-sm text-gray-500 mt-2">Loading…</p>
-              ) : bookings.length === 0 ? (
-                <p className="text-sm text-gray-500 mt-2">Nothing booked yet.</p>
+                <p className="text-sm text-gray-500">Loading…</p>
               ) : (
-                <div className="mt-2">
-                  {bookings.map(b => (
-                    <BookingRow
-                      key={b.id}
-                      booking={b}
-                      isMine={myBookingIds.has(b.id)}
-                      onUpdate={updateBooking}
-                      onCancel={cancelBooking}
-                    />
-                  ))}
-                </div>
+                <RoomTimeline
+                  bookings={bookings}
+                  myBookingIds={myBookingIds}
+                  onEdit={handleEdit}
+                  onCancel={handleCancel}
+                  onSlotClick={handleSlotClick}
+                />
               )}
             </div>
           </>
