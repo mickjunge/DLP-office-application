@@ -8,7 +8,7 @@ export default function Home() {
       </h1>
 
       <div className="h-full w-full flex items-center justify-end pr-10 md:pr-20">
-        <div className="h-[90vh] animate-in fade-in zoom-in-90 duration-700 ease-out">
+        <div className="h-[90vh] animate-in fade-in duration-500">
           <FloorPlan />
         </div>
       </div>

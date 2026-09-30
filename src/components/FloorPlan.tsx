@@ -8,11 +8,22 @@ export default function FloorPlan() {
   const navigate = useNavigate();
 
   return (
-    // Zoomed toward the three bookable rooms — the full building geometry
-    // below is untouched/complete, this viewBox just windows into a
-    // region of it, so parts of the building intentionally render outside
-    // the visible page (clipped by the page's own overflow-hidden).
-    <svg viewBox="-730 253 569 818" className="h-full w-auto select-none">
+    // Starts on the full building (viewBox below is the initial/from
+    // state), then the <animate> zooms the viewBox itself toward the
+    // three bookable rooms — a real camera zoom within the SVG's own
+    // coordinate space, not a CSS box-scale (which left a page-background
+    // gap around the narrower final aspect ratio while it animated).
+    <svg viewBox="-1040.5 14.5 1029 1136" className="h-full w-auto select-none">
+      <animate
+        attributeName="viewBox"
+        values="-1040.5 14.5 1029 1136;-730 253 569 818"
+        keyTimes="0;1"
+        keySplines="0.16 1 0.3 1"
+        calcMode="spline"
+        dur="1.4s"
+        begin="0.3s"
+        fill="freeze"
+      />
       <style>{`
         .bookable { cursor: pointer; transition: fill .2s ease; }
         .bookable:hover { fill: #eff6ff; }
