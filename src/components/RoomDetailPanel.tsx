@@ -39,7 +39,7 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
     // company and name the user already entered stay put.
     setSlotPrefill({ date });
     createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    toast("Time filled in below", { duration: 1500 });
+    toast("Time copied to start and end time", { duration: 1800 });
   };
 
   const handleCancelConfirmed = async (booking: Booking) => {
@@ -62,7 +62,7 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
         <p className="text-[15px] text-white/90 mt-1">
           {room.capacity ? `${room.capacity} seats · ` : ""}{room.location === "studio" ? "Studio" : "Office"}
         </p>
-        <span className={`mt-3 inline-block whitespace-nowrap text-xs font-semibold uppercase tracking-[0.08em] px-3 py-1.5 rounded-full border ${status.busy ? "bg-red-500/25 text-red-100 border-red-300/50" : "bg-emerald-500/25 text-emerald-100 border-emerald-300/50"}`}>
+        <span className={`mt-3 inline-block whitespace-nowrap transition-opacity duration-300 ${bookingsLoading ? "opacity-0" : "opacity-100"} text-xs font-semibold uppercase tracking-[0.08em] px-3 py-1.5 rounded-full border ${status.busy ? "bg-red-500/25 text-red-100 border-red-300/50" : "bg-emerald-500/25 text-emerald-100 border-emerald-300/50"}`}>
           {status.label}
         </span>
       </div></div>
@@ -89,16 +89,14 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
 
       <div className="glass-card"><div className="glass-card-inner h-full flex flex-col">
         <p className="text-2xl font-bold text-white tracking-tight mb-4">Agenda</p>
-        {bookingsLoading ? (
-          <p className="text-[15px] text-white/90">Loading…</p>
-        ) : (
-          <RoomTimeline
-            bookings={bookings}
-            myBookingIds={myBookingIds}
-            onSlotClick={handleSlotClick}
-            onSelect={setViewingBooking}
-          />
-        )}
+        {/* Always render the full-size timeline (empty until the bookings
+            arrive) so the card doesn't grow once the data loads. */}
+        <RoomTimeline
+          bookings={bookingsLoading ? [] : bookings}
+          myBookingIds={myBookingIds}
+          onSlotClick={handleSlotClick}
+          onSelect={setViewingBooking}
+        />
       </div></div>
     </div>
 
