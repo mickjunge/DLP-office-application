@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import GlassButton from "@/components/GlassButton";
 import { clockTime, formatDuration } from "@/lib/format";
+import CalendarButtons from "@/components/CalendarButtons";
 
 // Final check before a new booking is created: shows everything that
 // will be saved so a wrong room/time is caught before it's booked.
@@ -43,7 +44,7 @@ export default function ConfirmBookingModal({
         <div className="glass-card pointer-events-auto">
           <div className="glass-card-inner !p-0 overflow-hidden rounded-[1.1875rem]">
             {booked ? (
-              <div className="flex flex-col items-center justify-center gap-4 px-5 py-14 animate-in fade-in duration-300">
+              <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 animate-in fade-in duration-300">
                 <svg viewBox="0 0 32 32" className="size-24" shapeRendering="geometricPrecision">
                   <circle cx="16" cy="16" r="14" fill="none" stroke="#ffffff" strokeWidth="1.6" className="success-check-circle" style={{ strokeDasharray: 88 }} />
                   <path d="M9.5 16.5 L14 21 L22.5 11.5" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="success-check-mark" />
@@ -54,6 +55,12 @@ export default function ConfirmBookingModal({
                     {roomName} · {time(startsAt)} – {time(endsAt)}
                   </p>
                 </div>
+                <div className="w-full pt-2">
+                  <CalendarButtons event={{ title: company, roomName, bookedBy, startsAt, endsAt }} />
+                </div>
+                <GlassButton tone="primary" onClick={onClose} className="mt-1">
+                  Done
+                </GlassButton>
               </div>
             ) : (
             <>

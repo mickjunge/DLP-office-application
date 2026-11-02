@@ -7,8 +7,6 @@ import ConfirmBookingModal from "@/components/ConfirmBookingModal";
 
 const inputCls = "glass-input";
 
-const SUCCESS_MS = 1700;
-
 const DURATIONS = [
   { label: "15 min", minutes: 15 },
   { label: "30 min", minutes: 30 },
@@ -132,6 +130,16 @@ export default function BookingForm({
     else void doSubmit();
   };
 
+  // Backing out of the confirmation just closes it; dismissing the success
+  // view finishes the booking flow and lets the parent reset the form.
+  const closeConfirm = () => {
+    setConfirming(false);
+    if (booked) {
+      setBooked(false);
+      onBooked?.();
+    }
+  };
+
   const doSubmit = async () => {
     if (!startsAt || !endsAt) return;
     setSubmitting(true);
@@ -143,14 +151,9 @@ export default function BookingForm({
         endsAt: endsAt.toISOString(),
       });
       if (confirming) {
-        // Show the white check inside the popup instead of a toast, then
-        // close it and let the parent reset the form.
+        // Show the white check (with "add to calendar") inside the popup
+        // instead of a toast; it stays until dismissed — see closeConfirm.
         setBooked(true);
-        setTimeout(() => {
-          setConfirming(false);
-          setBooked(false);
-          onBooked?.();
-        }, SUCCESS_MS);
       }
     } catch (err) {
       toast.error(friendlyError(err));
@@ -222,7 +225,7 @@ export default function BookingForm({
           endsAt={endsAt}
           submitting={submitting}
           booked={booked}
-          onClose={() => !booked && setConfirming(false)}
+          onClose={closeConfirm}
           onConfirm={doSubmit}
         />
       )}
