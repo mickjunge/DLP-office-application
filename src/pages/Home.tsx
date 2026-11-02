@@ -224,7 +224,7 @@ export default function Home() {
             <RoomDetailPanel room={displayedRoom} initialBooking={focusBooking ?? undefined} onBack={() => openRoom(null)} />
           ) : (
             <>
-              <img src="/logo-transparent.png" alt="DLP" className="h-12 md:h-14 w-auto object-contain mb-6 md:mb-8 -ml-1" />
+              <img src="/logo-transparent.png" alt="DLP" className="h-12 md:h-14 w-auto object-contain mb-6 md:mb-8" />
               <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.02] whitespace-nowrap">Book a room</h1>
 
               <nav className="mt-8 flex flex-col gap-4">
