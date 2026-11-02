@@ -2,12 +2,14 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import GlassButton from "@/components/GlassButton";
 import { clockTime, formatDuration } from "@/lib/format";
+import { companyName } from "@/lib/companies";
 import CalendarButtons from "@/components/CalendarButtons";
 
 // Final check before a new booking is created: shows everything that
 // will be saved so a wrong room/time is caught before it's booked.
 export default function ConfirmBookingModal({
   roomName,
+  title,
   company,
   bookedBy,
   startsAt,
@@ -18,6 +20,7 @@ export default function ConfirmBookingModal({
   onConfirm,
 }: {
   roomName: string;
+  title: string;
   company: string;
   bookedBy: string;
   startsAt: Date;
@@ -31,7 +34,8 @@ export default function ConfirmBookingModal({
   const time = clockTime;
   const rows: [string, string][] = [
     ["Room", roomName],
-    ["Title", company],
+    ["Title", title],
+    ...(company ? ([["Company", companyName(company) ?? company]] as [string, string][]) : []),
     ["Booked by", bookedBy],
     ["Date", startsAt.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })],
     ["Time", `${time(startsAt)} – ${time(endsAt)}`],
@@ -56,7 +60,7 @@ export default function ConfirmBookingModal({
                   </p>
                 </div>
                 <div className="w-full pt-2">
-                  <CalendarButtons event={{ title: company, roomName, bookedBy, startsAt, endsAt }} />
+                  <CalendarButtons event={{ title, roomName, bookedBy, company: companyName(company), startsAt, endsAt }} />
                 </div>
                 <GlassButton tone="primary" onClick={onClose} className="mt-1">
                   Done

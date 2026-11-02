@@ -10,11 +10,15 @@ export default function CancelBookingModal({
   booking,
   roomName,
   onClose,
+  instant,
   onConfirm,
 }: {
   booking: Booking;
   roomName?: string;
   onClose: () => void;
+  // Skip the entrance animation: set when this popup replaces another one
+  // (the booking details popup), so there is no blank moment in between.
+  instant?: boolean;
   onConfirm: () => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
@@ -31,8 +35,8 @@ export default function CancelBookingModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-80 flex items-start justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-      <div className="mt-7 w-full max-w-sm mx-4 animate-in fade-in slide-in-from-top-4 duration-300" onClick={e => e.stopPropagation()}>
+    <div className={`fixed inset-0 z-80 flex items-start justify-center bg-black/70 backdrop-blur-sm ${instant ? "" : "animate-in fade-in duration-200"}`} onClick={onClose}>
+      <div className={`mt-7 w-full max-w-sm mx-4 ${instant ? "" : "animate-in fade-in slide-in-from-top-4 duration-300"}`} onClick={e => e.stopPropagation()}>
         <div className="glass-card pointer-events-auto"><div className="glass-card-inner !p-0 overflow-hidden rounded-[1.1875rem]">
           <div className="flex justify-between items-center py-3 px-4">
             <p className="eyebrow !text-white">Cancel booking</p>

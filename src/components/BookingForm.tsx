@@ -4,6 +4,7 @@ import type { Booking } from "@/hooks/useBookings";
 import { friendlyError } from "@/lib/friendlyError";
 import GlassButton from "@/components/GlassButton";
 import ConfirmBookingModal from "@/components/ConfirmBookingModal";
+import { COMPANIES } from "@/lib/companies";
 
 const inputCls = "glass-input";
 
@@ -23,19 +24,20 @@ export function toTimeInputValue(d: Date) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export type FormValues = { title: string; bookedBy: string; date: string; startTime: string; endTime: string };
+export type FormValues = { title: string; company: string; bookedBy: string; date: string; startTime: string; endTime: string };
 
 export function defaultFormValues(date?: Date): FormValues {
   const d = date ?? new Date();
   const start = new Date(d);
   if (!date) { start.setMinutes(0, 0, 0); start.setHours(start.getHours() + 1); } // next full hour if no explicit slot
   const end = new Date(start.getTime() + 30 * 60000);
-  return { title: "", bookedBy: "", date: toDateInputValue(d), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
+  return { title: "", company: "", bookedBy: "", date: toDateInputValue(d), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
 }
 
 export function bookingToFormValues(booking: Booking): FormValues {
   return {
     title: booking.title,
+    company: booking.company ?? "",
     bookedBy: booking.booked_by,
     date: toDateInputValue(new Date(booking.starts_at)),
     startTime: toTimeInputValue(new Date(booking.starts_at)),
@@ -77,7 +79,7 @@ export default function BookingForm({
   initial: FormValues;
   bookings: Booking[];
   excludeBookingId?: string;
-  onSubmit: (input: { title: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
+  onSubmit: (input: { title: string; company: string | null; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
   // Creating only: called after the success animation in the confirmation popup.
   onBooked?: () => void;
   onCancel?: () => void;
@@ -110,7 +112,9 @@ export default function BookingForm({
     set("endTime", `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
   };
 
-  const isComplete = !!(values.title && values.date && values.startTime && values.endTime && (editing || values.bookedBy));
+  // Company is required for new bookings; older bookings (no company) can be
+  // edited without picking one.
+  const isComplete = !!(values.title && values.date && values.startTime && values.endTime && (editing || (values.bookedBy && values.company)));
   // Client-side check against the bookings already loaded for this
   // room — catches the common case (picking an obviously-taken slot)
   // before ever submitting. The server-side exclusion constraint still
@@ -121,7 +125,28 @@ export default function BookingForm({
   const endsAt = values.date && values.endTime ? new Date(`${values.date}T${values.endTime}`) : null;
   const hasConflict =
     isComplete && startsAt && endsAt && endsAt > startsAt && overlapsExisting(bookings, startsAt, endsAt, excludeBookingId);
-  const canSubmit = isComplete && !hasConflict && !submitting;
+  // End must be after start. Booking is blocked, and a toast explains why.
+  const invalidRange = !!(startsAt && endsAt && endsAt <= startsAt);
+  // When editing, Save only does something once a field differs from the
+  // booking as it was opened (the name isn't editable, so it's not compared).
+  const changed =
+    values.title !== initial.title ||
+    values.company !== initial.company ||
+    values.date !== initial.date ||
+    values.startTime !== initial.startTime ||
+    values.endTime !== initial.endTime;
+  const canSubmit = isComplete && !hasConflict && !invalidRange && !submitting && (!editing || changed);
+
+  // Short delay so it doesn't fire halfway through typing a time; the fixed
+  // id means repeated edits update one toast instead of stacking several.
+  useEffect(() => {
+    if (!invalidRange) {
+      toast.dismiss("time-range");
+      return;
+    }
+    const t = setTimeout(() => toast.error("End time must be after the start time", { id: "time-range" }), 600);
+    return () => clearTimeout(t);
+  }, [invalidRange, values.date, values.startTime, values.endTime]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,6 +171,7 @@ export default function BookingForm({
     try {
       await onSubmit({
         title: values.title,
+        company: values.company || null,
         bookedBy: values.bookedBy,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
@@ -168,6 +194,28 @@ export default function BookingForm({
       <div>
         <label className="block mb-2 eyebrow">Title<span className="text-white/40 ml-0.5">*</span></label>
         <input className={inputCls} value={values.title} onChange={e => set("title", e.target.value)} placeholder="Title" />
+      </div>
+      <div>
+        <label className="block mb-2 eyebrow">Company{!editing && <span className="text-white/40 ml-0.5">*</span>}</label>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Company">
+          {COMPANIES.map(c => (
+            <button
+              key={c.code}
+              type="button"
+              role="radio"
+              aria-checked={values.company === c.code}
+              onClick={() => set("company", values.company === c.code && editing ? "" : c.code)}
+              title={c.name}
+              className={`h-10 px-5 text-sm rounded-full border transition-colors cursor-pointer ${
+                values.company === c.code
+                  ? "bg-white text-black border-white font-semibold"
+                  : "border-white/25 bg-white/[0.04] text-white/85 hover:bg-white/15 hover:text-white"
+              }`}
+            >
+              {c.code}
+            </button>
+          ))}
+        </div>
       </div>
       {!editing && (
         <div>
@@ -219,7 +267,8 @@ export default function BookingForm({
       {confirming && startsAt && endsAt && roomName && (
         <ConfirmBookingModal
           roomName={roomName}
-          company={values.title}
+          title={values.title}
+          company={values.company}
           bookedBy={values.bookedBy}
           startsAt={startsAt}
           endsAt={endsAt}

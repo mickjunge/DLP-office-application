@@ -8,6 +8,7 @@ export type CalendarEvent = {
   title: string;
   roomName: string;
   bookedBy: string;
+  company?: string;
   startsAt: Date;
   endsAt: Date;
 };
@@ -19,7 +20,7 @@ function utc(d: Date) {
 }
 
 function details(e: CalendarEvent) {
-  return `Booked by ${e.bookedBy} in ${e.roomName}.`;
+  return `${e.company ? `Company: ${e.company}. ` : ""}Booked by ${e.bookedBy} in ${e.roomName}.`;
 }
 
 function place(e: CalendarEvent) {

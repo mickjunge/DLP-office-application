@@ -36,6 +36,8 @@ export default function RoomDetailPanel({
   const [createFormKey, setCreateFormKey] = useState(0);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
+  // true while edit/cancel was opened from the details popup (see "instant")
+  const [handoff, setHandoff] = useState(false);
   const [viewingBooking, setViewingBooking] = useState<Booking | null>(initialBooking ?? null);
   // New object per click so clicking the same slot twice still re-applies it.
   const [slotPrefill, setSlotPrefill] = useState<{ date: Date } | undefined>(undefined);
@@ -123,8 +125,8 @@ export default function RoomDetailPanel({
           roomName={room.name}
           mine={myBookingIds.has(viewingBooking.id)}
           onClose={() => setViewingBooking(null)}
-          onEdit={() => { setEditingBooking(viewingBooking); setViewingBooking(null); }}
-          onCancel={() => { setCancellingBooking(viewingBooking); setViewingBooking(null); }}
+          onEdit={() => { setHandoff(true); setEditingBooking(viewingBooking); setViewingBooking(null); }}
+          onCancel={() => { setHandoff(true); setCancellingBooking(viewingBooking); setViewingBooking(null); }}
         />
       )}
 
@@ -133,7 +135,8 @@ export default function RoomDetailPanel({
           booking={editingBooking}
           roomName={room.name}
           bookings={bookings}
-          onClose={() => setEditingBooking(null)}
+          instant={handoff}
+          onClose={() => { setEditingBooking(null); setHandoff(false); }}
           onSave={async input => {
             await updateBooking(editingBooking.id, input);
             toast.success("Booking updated");
@@ -145,7 +148,8 @@ export default function RoomDetailPanel({
         <CancelBookingModal
           booking={cancellingBooking}
           roomName={room.name}
-          onClose={() => setCancellingBooking(null)}
+          instant={handoff}
+          onClose={() => { setCancellingBooking(null); setHandoff(false); }}
           onConfirm={() => handleCancelConfirmed(cancellingBooking)}
         />
       )}

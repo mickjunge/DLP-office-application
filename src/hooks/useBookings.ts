@@ -10,6 +10,8 @@ export type Booking = {
   ends_at: string;
   booked_by: string;
   created_at: string;
+  // DLP / BTB / PIXEL / OTHER; null on bookings made before companies existed
+  company: string | null;
 };
 
 type MyBooking = { id: string; editToken: string };
@@ -74,7 +76,7 @@ function forgetBooking(id: string) {
 // from within a single room's view (useRoomBookings wraps these).
 export async function updateBookingRpc(
   bookingId: string,
-  input: { title: string; startsAt: string; endsAt: string }
+  input: { title: string; company: string | null; startsAt: string; endsAt: string }
 ): Promise<Booking> {
   const editToken = getEditToken(bookingId);
   if (!editToken) throw new Error("This booking wasn't made from this device — no edit link is stored here.");
@@ -84,6 +86,7 @@ export async function updateBookingRpc(
     p_title: input.title,
     p_starts_at: input.startsAt,
     p_ends_at: input.endsAt,
+    p_company: input.company,
   });
   if (error) throw error;
   const booking = data as Booking;
@@ -160,7 +163,7 @@ export function useRoomBookings(roomId: string | undefined) {
   }, [roomId, refresh]);
 
   const createBooking = useCallback(
-    async (input: { title: string; startsAt: string; endsAt: string; bookedBy: string }) => {
+    async (input: { title: string; company: string | null; startsAt: string; endsAt: string; bookedBy: string }) => {
       if (!roomId) throw new Error("No room selected");
       const { data, error } = await supabase.rpc("create_booking", {
         p_room_id: roomId,
@@ -168,6 +171,7 @@ export function useRoomBookings(roomId: string | undefined) {
         p_starts_at: input.startsAt,
         p_ends_at: input.endsAt,
         p_booked_by: input.bookedBy,
+        p_company: input.company,
       });
       if (error) throw error;
       const booking = data as Booking & { edit_token: string };
@@ -184,7 +188,7 @@ export function useRoomBookings(roomId: string | undefined) {
   // hook's own local state, so a room's own detail view updates
   // immediately without waiting on its own broadcast round-trip.
   const updateBooking = useCallback(
-    async (bookingId: string, input: { title: string; startsAt: string; endsAt: string }) => {
+    async (bookingId: string, input: { title: string; company: string | null; startsAt: string; endsAt: string }) => {
       await updateBookingRpc(bookingId, input);
       await refresh();
     },

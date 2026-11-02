@@ -140,15 +140,16 @@ export default function FloorPlan({
           <circle cx={447} cy={493} r={31} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
           <rect x={573} y={497} width={132} height={41} rx={3} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
 
-          {/* Chairs — 5 around the round table (matches capacity 5),
+          {/* Chairs — 6 around the round table (matches capacity 6),
               6 per long side of the rectangular table (12 total, matches
               capacity 12). Positions computed from the table geometry
               above, not eyeballed. */}
           <circle cx={447} cy={452} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
-          <circle cx={486} cy={480.3} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
-          <circle cx={471.1} cy={526.2} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
-          <circle cx={422.9} cy={526.2} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
-          <circle cx={408} cy={480.3} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={482.5} cy={472.5} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={482.5} cy={513.5} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={447} cy={534} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={411.5} cy={513.5} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={411.5} cy={472.5} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
 
           <circle cx={584} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
           <circle cx={606} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />

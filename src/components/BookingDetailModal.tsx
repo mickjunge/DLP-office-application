@@ -3,6 +3,7 @@ import { Pencil, X } from "lucide-react";
 import type { Booking } from "@/hooks/useBookings";
 import GlassButton from "@/components/GlassButton";
 import { clockTime, formatDuration } from "@/lib/format";
+import { companyName } from "@/lib/companies";
 import CalendarButtons from "@/components/CalendarButtons";
 
 // Opened by clicking a booking in the agenda. Anyone can read the
@@ -27,6 +28,7 @@ export default function BookingDetailModal({
   const rows: [string, string][] = [
     ["Room", roomName],
     ["Title", booking.title],
+    ...(booking.company ? ([["Company", companyName(booking.company) ?? booking.company]] as [string, string][]) : []),
     ["Booked by", booking.booked_by],
     ["Date", start.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })],
     ["Time", `${clockTime(start)} – ${clockTime(end)}`],
@@ -58,7 +60,7 @@ export default function BookingDetailModal({
               ))}
             </dl>
             <div className="px-5 pb-4">
-              <CalendarButtons event={{ title: booking.title, roomName, bookedBy: booking.booked_by, startsAt: start, endsAt: end }} />
+              <CalendarButtons event={{ title: booking.title, roomName, bookedBy: booking.booked_by, company: companyName(booking.company), startsAt: start, endsAt: end }} />
             </div>
             <div className="px-5"><div className="border-b border-white/25" /></div>
             <div className="flex justify-end items-center gap-2 py-3 px-5">
