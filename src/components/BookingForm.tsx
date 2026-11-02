@@ -206,7 +206,7 @@ export default function BookingForm({
               aria-checked={values.company === c.code}
               onClick={() => set("company", values.company === c.code && editing ? "" : c.code)}
               title={c.name}
-              className={`h-10 px-5 text-sm rounded-full border transition-colors cursor-pointer ${
+              className={`h-10 max-md:h-11 px-5 text-sm rounded-full border transition-colors cursor-pointer ${
                 values.company === c.code
                   ? "bg-white text-black border-white font-semibold"
                   : "border-white/25 bg-white/[0.04] text-white/85 hover:bg-white/15 hover:text-white"
@@ -243,7 +243,7 @@ export default function BookingForm({
             key={d.label}
             type="button"
             onClick={() => applyDuration(d.minutes)}
-            className="text-xs px-3 py-1.5 rounded-full border border-white/20 bg-white/[0.04] text-white/92 hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
+            className="text-xs px-3 py-1.5 max-md:py-[13px] rounded-full border border-white/20 bg-white/[0.04] text-white/92 hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
           >
             {d.label}
           </button>

@@ -20,7 +20,7 @@ export default function RoomDetail() {
   });
 
   return (
-    <div className="min-h-screen px-6 py-6">
+    <div className="min-h-dvh px-4 md:px-6 py-6">
       <div className="max-w-[56rem] mx-auto">
         {isLoading ? (
           <p className="text-sm text-white/85">Loading…</p>

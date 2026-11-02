@@ -32,6 +32,19 @@ function reservationLabel(startsAt: string, endsAt: string) {
   return `${dayLabel} · ${timeLabel}`;
 }
 
+function Blurb() {
+  return (
+    <div className="text-sm leading-relaxed text-white/80 animate-in fade-in duration-700">
+      <p>
+        <span className="text-white font-medium">Book a meeting room here.</span> No login needed.
+      </p>
+      <p className="mt-1.5 text-white/70">
+        Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.
+      </p>
+    </div>
+  );
+}
+
 function RoomBadges({ room }: { room: Room }) {
   return (
     <div className="flex items-center gap-3 mt-1">
@@ -164,12 +177,16 @@ export default function Home() {
       : `animate-in fade-in duration-300 ${direction === "forward" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`;
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative animate-in fade-in duration-1000">
-      <FloorPlan
-        zoomTo={selectedSlug ?? "overview"}
-        onSelectRoom={slug => openRoom(slug)}
-        busySlugs={busySlugs}
-      />
+    <div className="h-dvh w-screen overflow-hidden relative animate-in fade-in duration-1000">
+      {/* Phones: the map is too small to tap reliably, so it only sits
+          dimmed behind the room list (which is the way in on phones). */}
+      <div className="absolute inset-0 max-md:opacity-[0.12] max-md:pointer-events-none">
+        <FloorPlan
+          zoomTo={selectedSlug ?? "overview"}
+          onSelectRoom={slug => openRoom(slug)}
+          busySlugs={busySlugs}
+        />
+      </div>
 
       {/* Only shown in detail view — the floorplan is zoomed in behind
           the panel here (unlike the overview, where it's zoomed out and
@@ -198,16 +215,16 @@ export default function Home() {
           the moment selectedRoom clears. pointer-events-none means it
           being present-but-invisible at opacity-0 has no effect. */}
       <div
-        className={`pointer-events-none absolute inset-y-0 left-0 w-[78%] bg-gradient-to-r from-[#000204]/80 from-70% to-transparent to-100% transition-opacity duration-[900ms] ease-out ${selectedRoom ? "opacity-100" : "opacity-0"}`}
+        className={`max-md:hidden pointer-events-none absolute inset-y-0 left-0 w-[78%] bg-gradient-to-r from-[#000204]/80 from-70% to-transparent to-100% transition-opacity duration-[900ms] ease-out ${selectedRoom ? "opacity-100" : "opacity-0"}`}
       />
 
-      <div className={`absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full ${displayedRoom ? "max-w-[56rem]" : "max-w-xl"} pr-6 overflow-y-auto`}>
+      <div className={`absolute inset-x-0 top-0 bottom-0 md:inset-x-auto md:top-14 md:left-16 md:bottom-10 w-full ${displayedRoom ? "max-w-[56rem]" : "max-w-xl"} px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] md:p-0 md:pr-6 overflow-y-auto`}>
         <div key={displayedKey + phase} className={panelAnimClass}>
           {displayedRoom ? (
             <RoomDetailPanel room={displayedRoom} initialBooking={focusBooking ?? undefined} onBack={() => openRoom(null)} />
           ) : (
             <>
-              <img src="/logo-transparent.png" alt="DLP" className="h-14 w-auto object-contain mb-8 -ml-1" />
+              <img src="/logo-transparent.png" alt="DLP" className="h-12 md:h-14 w-auto object-contain mb-6 md:mb-8 -ml-1" />
               <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.02] whitespace-nowrap">Book a room</h1>
 
               <nav className="mt-8 flex flex-col gap-4">
@@ -217,7 +234,7 @@ export default function Home() {
                     key={room.slug}
                     type="button"
                     onClick={() => openRoom(room.slug as RoomSlug)}
-                    className="text-left cursor-pointer group"
+                    className="text-left cursor-pointer group max-md:py-2"
                   >
                     <div className="flex items-baseline gap-3">
                       <span className="text-sm font-semibold text-white/70">{ROOM_NUMBERS[room.slug]}</span>
@@ -252,7 +269,7 @@ export default function Home() {
                             type="button"
                             onClick={() => setEditingReservation(r)}
                             title="Edit booking"
-                            className="size-10 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:border-white/30 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                            className="size-10 max-md:size-11 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:border-white/30 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                           >
                             <Pencil className="h-[18px] w-[18px]" />
                           </button>
@@ -260,7 +277,7 @@ export default function Home() {
                             type="button"
                             onClick={() => setCancellingReservation(r)}
                             title="Cancel booking"
-                            className="size-10 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:bg-red-500/25 hover:border-red-300/50 hover:text-white transition-colors cursor-pointer"
+                            className="size-10 max-md:size-11 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:bg-red-500/25 hover:border-red-300/50 hover:text-white transition-colors cursor-pointer"
                           >
                             <X className="h-5 w-5" />
                           </button>
@@ -270,19 +287,17 @@ export default function Home() {
                   </div>
                 </div>
               )}
+              <div className="md:hidden mt-10">
+                <Blurb />
+              </div>
             </>
           )}
         </div>
       </div>
 
       {!selectedRoom && (
-        <div className="pointer-events-none absolute bottom-8 left-10 md:left-16 max-w-sm text-sm leading-relaxed text-white/80 animate-in fade-in duration-700">
-          <p>
-            <span className="text-white font-medium">Book a meeting room here.</span> No login needed.
-          </p>
-          <p className="mt-1.5 text-white/70">
-            Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.
-          </p>
+        <div className="max-md:hidden pointer-events-none absolute bottom-8 left-16 max-w-sm">
+          <Blurb />
         </div>
       )}
 

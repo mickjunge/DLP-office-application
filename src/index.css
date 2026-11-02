@@ -200,3 +200,14 @@
 [data-sonner-toast][data-styled=true] [data-description] { color: #333 !important; }
 [data-sonner-toast][data-styled=true][data-type="error"] [data-icon] { color: #dc2626 !important; }
 [data-sonner-toast][data-styled=true][data-type="success"] [data-icon] { color: #059669 !important; }
+
+/* ── Phones (below Tailwind's md breakpoint) ───────────────── */
+/* 16px inputs stop iOS zooming in on focus; 44px is the minimum touch target. */
+@media (max-width: 767px) {
+  .glass-input { height: 2.75rem; font-size: 1rem; }
+  .glass-btn { padding: 1rem 1.25rem; }
+  .glass-btn-outer--sm .glass-btn { padding: 1rem 1.25rem; }
+  .glass-btn-outer--lg .glass-btn { padding: .9rem 1.25rem; }
+  .glass-btn-outer--icon .glass-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
+  .glass-card > .glass-card-inner { padding: 1rem 1.125rem; }
+}

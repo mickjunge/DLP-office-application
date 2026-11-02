@@ -98,7 +98,7 @@ export default function RoomTimeline({
         <button
           type="button"
           onClick={() => setSelectedDate(d => new Date(d.getTime() - 86400000))}
-          className="size-9 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
+          className="size-9 max-md:size-11 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -117,7 +117,7 @@ export default function RoomTimeline({
         <button
           type="button"
           onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))}
-          className="size-9 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
+          className="size-9 max-md:size-11 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
