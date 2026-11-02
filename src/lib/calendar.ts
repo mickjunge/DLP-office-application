@@ -94,3 +94,19 @@ export function googleCalendarUrl(e: CalendarEvent) {
   });
   return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
+
+// Outlook on the web "new event" page, prefilled. Work/school (Microsoft 365)
+// and personal (outlook.com) accounts live on different hosts.
+export function outlookUrl(e: CalendarEvent, account: "work" | "personal") {
+  const host = account === "work" ? "outlook.office.com" : "outlook.live.com";
+  const q = new URLSearchParams({
+    path: "/calendar/action/compose",
+    rru: "addevent",
+    subject: e.title,
+    startdt: e.startsAt.toISOString(),
+    enddt: e.endsAt.toISOString(),
+    body: details(e),
+    location: place(e),
+  });
+  return `https://${host}/calendar/0/deeplink/compose?${q.toString()}`;
+}
