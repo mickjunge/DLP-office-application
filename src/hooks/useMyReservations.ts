@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyBookingIds, type Booking } from "@/hooks/useBookings";
+import { subscribeLiveBookings } from "@/lib/liveBookings";
 
 export type MyReservation = Booking & { roomName: string };
 
@@ -42,13 +43,9 @@ export function useMyReservations(rooms: { id: string; name: string }[]) {
     refresh();
   }, [refresh]);
 
-  // Not scheduled to the exact second like room status (this is a
-  // supplementary list, not the primary "is it free" signal) — a
-  // reservation dropping off within a minute of ending is fine.
-  useEffect(() => {
-    const interval = setInterval(refresh, 60000);
-    return () => clearInterval(interval);
-  }, [refresh]);
+  // Live updates plus a 60s heartbeat (from the shared connection), which
+  // also drops a booking from this list shortly after it ends.
+  useEffect(() => subscribeLiveBookings(() => void refresh()), [refresh]);
 
   return { reservations, refresh };
 }

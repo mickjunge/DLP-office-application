@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import GlassButton from "@/components/GlassButton";
 import { toast } from "sonner";
@@ -21,17 +21,34 @@ export type Room = {
 // Shared between the standalone /rooms/:slug page and the inline
 // master/detail view on the home page — same booking form + timeline,
 // just embedded in a different surrounding layout by each caller.
-export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: () => void }) {
+export default function RoomDetailPanel({
+  room,
+  onBack,
+  initialBooking,
+}: {
+  room: Room;
+  onBack: () => void;
+  // Open with this booking's details popup already showing (used when
+  // arriving from "My bookings").
+  initialBooking?: Booking;
+}) {
   const createFormRef = useRef<HTMLDivElement>(null);
   const [createFormKey, setCreateFormKey] = useState(0);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
-  const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
+  const [viewingBooking, setViewingBooking] = useState<Booking | null>(initialBooking ?? null);
   // New object per click so clicking the same slot twice still re-applies it.
   const [slotPrefill, setSlotPrefill] = useState<{ date: Date } | undefined>(undefined);
 
   const { bookings, isLoading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useRoomBookings(room.id);
   const myBookingIds = useMyBookingIds();
+  // "Free until 14:00" / "Busy until…" is derived from the clock, so
+  // re-render once a minute to keep it correct without any data change.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
   const status = currentStatus(bookings);
 
   const handleSlotClick = (date: Date) => {

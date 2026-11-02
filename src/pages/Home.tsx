@@ -123,6 +123,13 @@ export default function Home() {
   }, [editingReservation]);
 
   const [selectedSlug, setSelectedSlug] = useState<RoomSlug | null>(null);
+  // Set when a row in "My bookings" is clicked: the room opens with that
+  // booking's details popup already showing. Cleared on any other navigation.
+  const [focusBooking, setFocusBooking] = useState<Booking | null>(null);
+  const openRoom = (slug: RoomSlug | null, booking: Booking | null = null) => {
+    setFocusBooking(booking);
+    setSelectedSlug(slug);
+  };
   const selectedRoom = rooms?.find(r => r.slug === selectedSlug) ?? null;
 
   const busyRoomIds = useRoomsStatus(rooms?.map(r => r.id) ?? []);
@@ -160,7 +167,7 @@ export default function Home() {
     <div className="h-screen w-screen overflow-hidden relative animate-in fade-in duration-1000">
       <FloorPlan
         zoomTo={selectedSlug ?? "overview"}
-        onSelectRoom={slug => setSelectedSlug(slug)}
+        onSelectRoom={slug => openRoom(slug)}
         busySlugs={busySlugs}
       />
 
@@ -197,7 +204,7 @@ export default function Home() {
       <div className={`absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full ${displayedRoom ? "max-w-[56rem]" : "max-w-xl"} pr-6 overflow-y-auto`}>
         <div key={displayedKey + phase} className={panelAnimClass}>
           {displayedRoom ? (
-            <RoomDetailPanel room={displayedRoom} onBack={() => setSelectedSlug(null)} />
+            <RoomDetailPanel room={displayedRoom} initialBooking={focusBooking ?? undefined} onBack={() => openRoom(null)} />
           ) : (
             <>
               <img src="/logo-transparent.png" alt="DLP" className="h-14 w-auto object-contain mb-8 -ml-1" />
@@ -209,7 +216,7 @@ export default function Home() {
                   <button
                     key={room.slug}
                     type="button"
-                    onClick={() => setSelectedSlug(room.slug as RoomSlug)}
+                    onClick={() => openRoom(room.slug as RoomSlug)}
                     className="text-left cursor-pointer group"
                   >
                     <div className="flex items-baseline gap-3">
@@ -233,7 +240,7 @@ export default function Home() {
                           type="button"
                           onClick={() => {
                             const slug = rooms?.find(room => room.id === r.room_id)?.slug as RoomSlug | undefined;
-                            if (slug) setSelectedSlug(slug);
+                            if (slug) openRoom(slug, r);
                           }}
                           className="text-left cursor-pointer min-w-0 flex-1"
                         >

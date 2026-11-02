@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { subscribeLiveBookings } from "@/lib/liveBookings";
 
 const MAX_TIMEOUT = 2_000_000_000; // setTimeout's delay is a 32-bit int; clamp well under that
 
@@ -62,20 +63,9 @@ export function useRoomsStatus(roomIds: string[]) {
 
   useEffect(() => {
     if (roomIds.length === 0) return;
-    const channels = roomIds.map(id => {
-      const channel = supabase.channel(`room:${id}`);
-      channel.on("broadcast", { event: "booking_changed" }, () => refresh());
-      channel.subscribe();
-      return channel;
-    });
-    return () => channels.forEach(ch => supabase.removeChannel(ch));
+    return subscribeLiveBookings(() => void refresh());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, refresh]);
-
-  useEffect(() => {
-    const interval = setInterval(refresh, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [refresh]);
 
   return busyRoomIds;
 }

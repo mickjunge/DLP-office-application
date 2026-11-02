@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { announceBookingsChanged, subscribeLiveBookings } from "@/lib/liveBookings";
 
 export type Booking = {
   id: string;
@@ -67,21 +68,6 @@ function forgetBooking(id: string) {
   writeMyBookings(readMyBookings().filter(b => b.id !== id));
 }
 
-// One-off broadcast on a room's channel — joins just long enough to
-// send, then leaves. Used by the standalone mutation functions below,
-// which (unlike useRoomBookings) aren't already holding an open
-// channel for a specific room, since a caller like "My reservations"
-// on the overview can be acting on a booking in any of several rooms.
-function broadcastRoomChanged(roomId: string) {
-  const channel = supabase.channel(`room:${roomId}`);
-  channel.subscribe(status => {
-    if (status === "SUBSCRIBED") {
-      channel.send({ type: "broadcast", event: "booking_changed", payload: {} });
-      supabase.removeChannel(channel);
-    }
-  });
-}
-
 // Standalone mutation functions — not tied to a specific room's
 // useRoomBookings instance, so they work from contexts spanning
 // multiple rooms (the overview's "My reservations" list) as well as
@@ -101,7 +87,7 @@ export async function updateBookingRpc(
   });
   if (error) throw error;
   const booking = data as Booking;
-  broadcastRoomChanged(booking.room_id);
+  announceBookingsChanged(booking.room_id);
   return booking;
 }
 
@@ -114,7 +100,7 @@ export async function cancelBookingRpc(bookingId: string, roomId: string): Promi
   });
   if (error) throw error;
   forgetBooking(bookingId);
-  broadcastRoomChanged(roomId);
+  announceBookingsChanged(roomId);
 }
 
 const MAX_TIMEOUT = 2_000_000_000; // setTimeout's delay is a 32-bit int; clamp well under that
@@ -127,7 +113,9 @@ export function useRoomBookings(roomId: string | undefined) {
   const refresh = useCallback(async () => {
     if (boundaryTimeoutRef.current) clearTimeout(boundaryTimeoutRef.current);
     if (!roomId) return;
-    setIsLoading(true);
+    // isLoading is only true for the first load of a room. Later refreshes
+    // (live updates, boundary timers) swap the data in place — flagging
+    // them as "loading" would blank the agenda on every update.
     const { data, error } = await supabase
       .from("bookings_public")
       .select("*")
@@ -163,26 +151,12 @@ export function useRoomBookings(roomId: string | undefined) {
     };
   }, [refresh]);
 
-  // Double-booking is already prevented regardless of this — the
-  // bookings_no_overlap exclusion constraint rejects an overlapping
-  // insert/update atomically at the database level no matter what any
-  // client's UI currently shows. This is purely about freshness: without
-  // it, someone viewing this room wouldn't see another person's booking
-  // until they happened to refetch, and could waste an attempt booking
-  // a slot that's actually already taken. No DB trigger needed — every
-  // write already goes through this hook, so it broadcasts right after
-  // a successful create/update/cancel; any other tab subscribed to this
-  // same room's channel just refetches on that signal rather than
-  // trying to patch state from the payload (simpler, and fine at the
-  // scale of a few bookings per room).
+  // Freshness only (double-booking is blocked by the database regardless):
+  // refetch whenever the shared live connection says something changed or
+  // we need to catch up — see src/lib/liveBookings.ts.
   useEffect(() => {
     if (!roomId) return;
-    const channel = supabase.channel(`room:${roomId}`);
-    channel.on("broadcast", { event: "booking_changed" }, () => refresh());
-    channel.subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeLiveBookings(() => void refresh());
   }, [roomId, refresh]);
 
   const createBooking = useCallback(
@@ -199,7 +173,7 @@ export function useRoomBookings(roomId: string | undefined) {
       const booking = data as Booking & { edit_token: string };
       rememberBooking(booking.id, booking.edit_token);
       await refresh();
-      broadcastRoomChanged(roomId);
+      announceBookingsChanged(roomId);
       return booking;
     },
     [roomId, refresh]
