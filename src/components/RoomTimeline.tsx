@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Booking } from "@/hooks/useBookings";
 
 const DAY_START_HOUR = 8;
 const DAY_END_HOUR = 20; // 8am-8pm covers normal office hours
-const HOUR_HEIGHT = 56;
 const TOTAL_HOURS = DAY_END_HOUR - DAY_START_HOUR;
 
 function startOfDay(d: Date) {
@@ -24,6 +23,11 @@ function dateLabel(d: Date) {
   if (diffDays === 1) return "Tomorrow";
   if (diffDays === -1) return "Yesterday";
   return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+// 24h, matching the time fields in the booking form and confirmation popup.
+function shortTime(d: Date) {
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatTime(d: Date) {
@@ -46,8 +50,10 @@ function blockStyle(booking: Booking, day: Date) {
   const durationMinutes = Math.max((end.getTime() - start.getTime()) / 60000, 15);
 
   return {
-    top: (minutesFromStart / 60) * HOUR_HEIGHT,
-    height: (durationMinutes / 60) * HOUR_HEIGHT,
+    // percentages of the grid's height, so the day scales to whatever
+    // height the agenda card is stretched to
+    top: (minutesFromStart / (TOTAL_HOURS * 60)) * 100,
+    height: (durationMinutes / (TOTAL_HOURS * 60)) * 100,
   };
 }
 
@@ -67,15 +73,14 @@ export function currentStatus(bookings: Booking[]): { busy: boolean; label: stri
 export default function RoomTimeline({
   bookings,
   myBookingIds,
-  onEdit,
-  onCancel,
   onSlotClick,
+  onSelect,
 }: {
   bookings: Booking[];
   myBookingIds: Set<string>;
-  onEdit: (booking: Booking) => void;
-  onCancel: (booking: Booking) => void;
   onSlotClick?: (date: Date) => void;
+  // Click a booking block to open its details.
+  onSelect?: (booking: Booking) => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
 
@@ -87,22 +92,22 @@ export default function RoomTimeline({
   const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => DAY_START_HOUR + i);
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <button
           type="button"
           onClick={() => setSelectedDate(d => new Date(d.getTime() - 86400000))}
-          className="size-8 inline-flex justify-center items-center rounded-lg bg-gray-100 border border-transparent text-gray-800 hover:bg-gray-200 focus:outline-hidden cursor-pointer"
+          className="size-9 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-800">{dateLabel(selectedDate)}</span>
+          <span className="text-lg font-semibold text-white">{dateLabel(selectedDate)}</span>
           {!isSameDay(selectedDate, new Date()) && (
             <button
               type="button"
               onClick={() => setSelectedDate(startOfDay(new Date()))}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
+              className="text-sm text-white underline underline-offset-2 hover:text-white cursor-pointer"
             >
               Jump to today
             </button>
@@ -111,21 +116,21 @@ export default function RoomTimeline({
         <button
           type="button"
           onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))}
-          className="size-8 inline-flex justify-center items-center rounded-lg bg-gray-100 border border-transparent text-gray-800 hover:bg-gray-200 focus:outline-hidden cursor-pointer"
+          className="size-9 inline-flex justify-center items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      <div className="flex border border-gray-100 rounded-lg overflow-hidden">
-        <div className="shrink-0 w-14 border-r border-gray-100">
+      <div className="flex flex-1 min-h-[40rem] border border-white/30 rounded-xl overflow-hidden bg-black/30">
+        <div className="shrink-0 w-14 flex flex-col border-r border-white/25">
           {hours.map(h => (
-            <div key={h} style={{ height: HOUR_HEIGHT }} className="text-[11px] text-gray-400 text-right pr-2 pt-0.5 border-b border-gray-50 last:border-0">
+            <div key={h} className="flex-1 text-xs text-white/90 text-right pr-2 pt-0.5 border-b border-white/15 last:border-0">
               {h % 12 === 0 ? 12 : h % 12}{h < 12 ? "am" : "pm"}
             </div>
           ))}
         </div>
-        <div className="relative flex-1" style={{ height: HOUR_HEIGHT * TOTAL_HOURS }}>
+        <div className="relative flex-1 self-start" style={{ height: `${(TOTAL_HOURS / (TOTAL_HOURS + 1)) * 100}%` }}>
           {hours.slice(0, -1).map((h, i) => (
             <button
               key={h}
@@ -136,43 +141,45 @@ export default function RoomTimeline({
                 d.setHours(h, 0, 0, 0);
                 onSlotClick(d);
               }}
-              style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-              className="absolute inset-x-0 border-b border-gray-50 hover:bg-gray-50/70 transition-colors cursor-pointer"
+              style={{ top: `${(i / TOTAL_HOURS) * 100}%`, height: `${100 / TOTAL_HOURS}%` }}
+              className="absolute inset-x-0 border-b border-white/15 hover:bg-white/[0.1] transition-colors cursor-pointer"
             />
           ))}
           {dayBookings.map(b => {
             const style = blockStyle(b, selectedDate);
             const mine = myBookingIds.has(b.id);
+            const timeRange = `${shortTime(new Date(b.starts_at))} – ${shortTime(new Date(b.ends_at))}`;
+            const minutes = (new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime()) / 60000;
+            // Blocks are sized exactly to their time span (no minimum height,
+            // so a short booking can never spill over the next one); the
+            // content just gets more compact as the block gets shorter:
+            //   <= 15 min: one tiny line, no buttons (open it for details)
+            //   <= 30 min: one line with the time
+            //   longer:    title line + time/name line
+            const tiny = minutes <= 15;
+            const short = minutes <= 30;
             return (
               <div
                 key={b.id}
-                style={{ top: style.top, height: Math.max(style.height, 20) }}
-                className={`absolute inset-x-1 rounded-md px-2 py-1 overflow-hidden pointer-events-none ${mine ? "bg-blue-100 border border-blue-300" : "bg-gray-200 border border-gray-300"}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect?.(b)}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(b); } }}
+                title={`${b.title} · ${timeRange} · ${b.booked_by} — click for details`}
+                style={{ top: `calc(${style.top}% + 1px)`, height: `calc(${style.height}% - 2px)` }}
+                className={`absolute inset-x-1 rounded-md px-2 overflow-hidden cursor-pointer transition-all duration-150 hover:z-10 hover:scale-[1.02] hover:shadow-[0_0_0_2px_rgba(255,255,255,0.95),0_6px_20px_rgba(0,0,0,0.5)] ${
+                  tiny ? "flex items-center" : short ? "py-0.5 border" : "py-1 border"
+                } ${mine ? "bg-white/90 border-white hover:bg-white" : "bg-white/30 border-white/50 hover:bg-white/50"}`}
               >
-                <div className="flex items-start justify-between gap-1">
-                  <p className="text-[11px] font-medium text-gray-800 truncate">{b.title}</p>
-                  {mine && (
-                    <div className="flex items-center gap-1 shrink-0 pointer-events-auto -mt-0.5 -mr-0.5">
-                      <button
-                        type="button"
-                        onClick={() => onEdit(b)}
-                        title="Edit booking"
-                        className="size-5 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-colors cursor-pointer"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onCancel(b)}
-                        title="Cancel booking"
-                        className="size-5 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-white hover:text-red-600 hover:shadow-sm transition-colors cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
+                <div className={tiny ? "w-full" : ""}>
+                  <p className={`${tiny ? "text-[11px] leading-[11px]" : short ? "text-xs leading-tight" : "text-[13px]"} font-semibold ${mine ? "text-black" : "text-white"} truncate`}>
+                    {b.title}
+                    {short && <span className="font-normal"> · {timeRange}</span>}
+                  </p>
                 </div>
-                <p className="text-[10px] text-gray-500 truncate">{b.booked_by}</p>
+                {!short && (
+                  <p className={`text-xs ${mine ? "text-black/80" : "text-white"} truncate`}>{timeRange} · {b.booked_by}</p>
+                )}
               </div>
             );
           })}

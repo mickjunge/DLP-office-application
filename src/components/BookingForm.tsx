@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Booking } from "@/hooks/useBookings";
 import { friendlyError } from "@/lib/friendlyError";
+import GlassButton from "@/components/GlassButton";
+import ConfirmBookingModal from "@/components/ConfirmBookingModal";
 
-const inputCls = "h-9 w-full px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-800 placeholder:text-gray-500 focus:outline-hidden focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:text-gray-800 disabled:pointer-events-none";
+const inputCls = "glass-input";
+
+const SUCCESS_MS = 1700;
 
 const DURATIONS = [
   { label: "15 min", minutes: 15 },
@@ -56,21 +60,47 @@ function overlapsExisting(bookings: Booking[], startsAt: Date, endsAt: Date, exc
 // room, just a different submit handler and initial values per caller.
 export default function BookingForm({
   editing,
+  roomName,
+  slotPrefill,
   initial,
   bookings,
   excludeBookingId,
   onSubmit,
+  onBooked,
   onCancel,
 }: {
   editing?: boolean;
+  // When set (creating, not editing), "Book" first opens a confirmation
+  // popup listing the room and every detail before the booking is made.
+  roomName?: string;
+  // Clicking a slot in the agenda: applies just the date and start time
+  // (keeping the chosen duration) without touching the other fields.
+  slotPrefill?: { date: Date };
   initial: FormValues;
   bookings: Booking[];
   excludeBookingId?: string;
   onSubmit: (input: { title: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
+  // Creating only: called after the success animation in the confirmation popup.
+  onBooked?: () => void;
   onCancel?: () => void;
 }) {
   const [values, setValues] = useState<FormValues>(initial);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [booked, setBooked] = useState(false);
+  useEffect(() => {
+    if (!slotPrefill) return;
+    setValues(prev => {
+      const [sh, sm] = prev.startTime.split(":").map(Number);
+      const [eh, em] = prev.endTime.split(":").map(Number);
+      const minutes = eh * 60 + em - (sh * 60 + sm);
+      const duration = minutes > 0 ? minutes : 30;
+      const start = slotPrefill.date;
+      const end = new Date(start.getTime() + duration * 60000);
+      return { ...prev, date: toDateInputValue(start), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
+    });
+  }, [slotPrefill]);
+
   const set = <K extends keyof FormValues>(key: K, v: FormValues[K]) => setValues(prev => ({ ...prev, [key]: v }));
 
   const applyDuration = (minutes: number) => {
@@ -95,9 +125,15 @@ export default function BookingForm({
     isComplete && startsAt && endsAt && endsAt > startsAt && overlapsExisting(bookings, startsAt, endsAt, excludeBookingId);
   const canSubmit = isComplete && !hasConflict && !submitting;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !startsAt || !endsAt) return;
+    if (!canSubmit) return;
+    if (roomName && !editing) setConfirming(true);
+    else void doSubmit();
+  };
+
+  const doSubmit = async () => {
+    if (!startsAt || !endsAt) return;
     setSubmitting(true);
     try {
       await onSubmit({
@@ -106,36 +142,47 @@ export default function BookingForm({
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
       });
+      if (confirming) {
+        // Show the white check inside the popup instead of a toast, then
+        // close it and let the parent reset the form.
+        setBooked(true);
+        setTimeout(() => {
+          setConfirming(false);
+          setBooked(false);
+          onBooked?.();
+        }, SUCCESS_MS);
+      }
     } catch (err) {
       toast.error(friendlyError(err));
+      setConfirming(false);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-800">Title<span className="text-red-400 ml-0.5">*</span></label>
-        <input className={inputCls} value={values.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Team standup" />
+        <label className="block mb-2 eyebrow">Title<span className="text-white/40 ml-0.5">*</span></label>
+        <input className={inputCls} value={values.title} onChange={e => set("title", e.target.value)} placeholder="Title" />
       </div>
       {!editing && (
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-800">Your name<span className="text-red-400 ml-0.5">*</span></label>
-          <input className={inputCls} value={values.bookedBy} onChange={e => set("bookedBy", e.target.value)} placeholder="e.g. Mick" />
+          <label className="block mb-2 eyebrow">Your name<span className="text-white/70 ml-0.5">*</span></label>
+          <input className={inputCls} value={values.bookedBy} onChange={e => set("bookedBy", e.target.value)} placeholder="Your name" />
         </div>
       )}
       <div>
-        <label className="block mb-2 text-sm font-medium text-gray-800">Date<span className="text-red-400 ml-0.5">*</span></label>
+        <label className="block mb-2 eyebrow">Date<span className="text-white/70 ml-0.5">*</span></label>
         <input type="date" className={inputCls} value={values.date} onChange={e => set("date", e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-800">Start<span className="text-red-400 ml-0.5">*</span></label>
+          <label className="block mb-2 eyebrow">Start<span className="text-white/70 ml-0.5">*</span></label>
           <input type="time" className={inputCls} value={values.startTime} onChange={e => set("startTime", e.target.value)} />
         </div>
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-800">End<span className="text-red-400 ml-0.5">*</span></label>
+          <label className="block mb-2 eyebrow">End<span className="text-white/70 ml-0.5">*</span></label>
           <input type="time" className={inputCls} value={values.endTime} onChange={e => set("endTime", e.target.value)} />
         </div>
       </div>
@@ -145,35 +192,40 @@ export default function BookingForm({
             key={d.label}
             type="button"
             onClick={() => applyDuration(d.minutes)}
-            className="text-[11px] font-medium px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
+            className="text-xs px-3 py-1.5 rounded-full border border-white/20 bg-white/[0.04] text-white/92 hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
           >
             {d.label}
           </button>
         ))}
       </div>
       {hasConflict && (
-        <p className="text-xs text-red-600 text-right -mb-1">
+        <p className="text-xs text-red-400 text-right -mb-1">
           This time overlaps an existing booking for this room — pick a different time.
         </p>
       )}
-      <div className="flex justify-end items-center gap-2">
+      <div className="flex justify-end items-center gap-2 mt-auto pt-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden transition-colors cursor-pointer">
+          <GlassButton size="sm" onClick={onCancel}>
             Cancel
-          </button>
+          </GlassButton>
         )}
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={`h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border shadow-sm focus:outline-hidden transition-colors cursor-pointer disabled:pointer-events-none ${
-            hasConflict
-              ? "border-red-700/10 bg-red-600 text-white disabled:opacity-60"
-              : "border-white/10 bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40"
-          }`}
-        >
+        <GlassButton type="submit" size="sm" tone={hasConflict ? "danger" : "primary"} disabled={!canSubmit}>
           {submitting ? "Saving…" : editing ? "Save" : "Book"}
-        </button>
+        </GlassButton>
       </div>
+      {confirming && startsAt && endsAt && roomName && (
+        <ConfirmBookingModal
+          roomName={roomName}
+          company={values.title}
+          bookedBy={values.bookedBy}
+          startsAt={startsAt}
+          endsAt={endsAt}
+          submitting={submitting}
+          booked={booked}
+          onClose={() => !booked && setConfirming(false)}
+          onConfirm={doSubmit}
+        />
+      )}
     </form>
   );
 }

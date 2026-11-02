@@ -7,6 +7,7 @@ import FloorPlan, { type RoomSlug } from "@/components/FloorPlan";
 import RoomDetailPanel, { type Room } from "@/components/RoomDetailPanel";
 import EditBookingModal from "@/components/EditBookingModal";
 import CancelBookingModal from "@/components/CancelBookingModal";
+import { HIDDEN_ROOM_SLUGS } from "@/lib/rooms";
 import { useRoomsStatus } from "@/hooks/useRoomsStatus";
 import { useMyReservations, type MyReservation } from "@/hooks/useMyReservations";
 import { updateBookingRpc, cancelBookingRpc, type Booking } from "@/hooks/useBookings";
@@ -16,7 +17,8 @@ const ROOM_NUMBERS: Record<string, string> = {
   "big-conference-room": "02",
   studio: "03",
 };
-const ROOM_ORDER = ["small-conference-room", "big-conference-room", "studio"];
+const ROOM_ORDER = ["small-conference-room", "big-conference-room"];
+const visibleRooms = (rooms: Room[]) => rooms.filter(r => !HIDDEN_ROOM_SLUGS.has(r.slug));
 
 function reservationLabel(startsAt: string, endsAt: string) {
   const start = new Date(startsAt);
@@ -33,15 +35,48 @@ function reservationLabel(startsAt: string, endsAt: string) {
 function RoomBadges({ room }: { room: Room }) {
   return (
     <div className="flex items-center gap-3 mt-1">
-      <span className={`inline-flex items-center gap-1 text-xs font-medium ${room.capacity ? "text-gray-500" : "text-gray-300"}`}>
-        <Users className="h-3.5 w-3.5" />
+      <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${room.capacity ? "text-white/85" : "text-white/55"}`}>
+        <Users className="h-4 w-4" />
         {room.capacity ? `${room.capacity} seats` : "Seats N/A"}
       </span>
-      <span className={`inline-flex items-center gap-1 text-xs font-medium ${room.has_tv ? "text-gray-500" : "text-gray-300"}`}>
-        <Tv className="h-3.5 w-3.5" />
+      <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${room.has_tv ? "text-white/85" : "text-white/55"}`}>
+        <Tv className="h-4 w-4" />
         {room.has_tv === null ? "—" : room.has_tv ? "Screen" : "No screen"}
       </span>
     </div>
+  );
+}
+
+// Rooms almost never change, so the last fetched list is kept in
+// localStorage and used as initial data: repeat visits render the room
+// list instantly while the query still refetches in the background.
+const ROOMS_CACHE_KEY = "dlp-office-rooms";
+
+function readCachedRooms(): Room[] | undefined {
+  try {
+    const raw = localStorage.getItem(ROOMS_CACHE_KEY);
+    return raw ? visibleRooms(JSON.parse(raw) as Room[]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function RoomListSkeleton() {
+  return (
+    <>
+      {ROOM_ORDER.map(slug => (
+        <div key={slug} className="animate-pulse">
+          <div className="flex items-baseline gap-3">
+            <span className="text-sm font-semibold text-white/40">{ROOM_NUMBERS[slug]}</span>
+            <span className="h-5 w-44 rounded-full bg-white/10" />
+          </div>
+          <div className="pl-8 mt-2 flex gap-3">
+            <span className="h-3.5 w-16 rounded-full bg-white/10" />
+            <span className="h-3.5 w-16 rounded-full bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -51,11 +86,20 @@ export default function Home() {
     queryFn: async () => {
       const { data, error } = await supabase.from("rooms").select("*");
       if (error) throw error;
-      return (data as Room[]).sort((a, b) => ROOM_ORDER.indexOf(a.slug) - ROOM_ORDER.indexOf(b.slug));
+      const sorted = visibleRooms(data as Room[]).sort((a, b) => ROOM_ORDER.indexOf(a.slug) - ROOM_ORDER.indexOf(b.slug));
+      try {
+        localStorage.setItem(ROOMS_CACHE_KEY, JSON.stringify(sorted));
+      } catch {
+        // storage unavailable (private mode / quota) — cache is optional
+      }
+      return sorted;
     },
+    initialData: readCachedRooms,
+    initialDataUpdatedAt: 0,
   });
 
-  const { reservations: myReservations, refresh: refreshMyReservations } = useMyReservations(rooms ?? []);
+  const { reservations: allReservations, refresh: refreshMyReservations } = useMyReservations(rooms ?? []);
+  const myReservations = allReservations.filter(r => r.roomName !== "Unknown room");
 
   const [editingReservation, setEditingReservation] = useState<MyReservation | null>(null);
   const [cancellingReservation, setCancellingReservation] = useState<MyReservation | null>(null);
@@ -113,7 +157,7 @@ export default function Home() {
       : `animate-in fade-in duration-300 ${direction === "forward" ? "slide-in-from-right-4" : "slide-in-from-left-4"}`;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white relative animate-in fade-in duration-1000">
+    <div className="h-screen w-screen overflow-hidden relative animate-in fade-in duration-1000">
       <FloorPlan
         zoomTo={selectedSlug ?? "overview"}
         onSelectRoom={slug => setSelectedSlug(slug)}
@@ -147,18 +191,20 @@ export default function Home() {
           the moment selectedRoom clears. pointer-events-none means it
           being present-but-invisible at opacity-0 has no effect. */}
       <div
-        className={`pointer-events-none absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-white from-70% to-transparent to-100% transition-opacity duration-[900ms] ease-out ${selectedRoom ? "opacity-100" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-y-0 left-0 w-[78%] bg-gradient-to-r from-[#000204]/80 from-70% to-transparent to-100% transition-opacity duration-[900ms] ease-out ${selectedRoom ? "opacity-100" : "opacity-0"}`}
       />
 
-      <div className="absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full max-w-sm overflow-y-auto">
+      <div className={`absolute top-10 left-10 md:top-14 md:left-16 bottom-10 w-full ${displayedRoom ? "max-w-[56rem]" : "max-w-xl"} pr-6 overflow-y-auto`}>
         <div key={displayedKey + phase} className={panelAnimClass}>
           {displayedRoom ? (
             <RoomDetailPanel room={displayedRoom} onBack={() => setSelectedSlug(null)} />
           ) : (
             <>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">Reserve a room</h1>
+              <img src="/logo-transparent.png" alt="DLP" className="h-14 w-auto object-contain mb-8 -ml-1" />
+              <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.02] whitespace-nowrap">Book a room</h1>
 
               <nav className="mt-8 flex flex-col gap-4">
+                {!rooms && <RoomListSkeleton />}
                 {rooms?.map(room => (
                   <button
                     key={room.slug}
@@ -167,8 +213,8 @@ export default function Home() {
                     className="text-left cursor-pointer group"
                   >
                     <div className="flex items-baseline gap-3">
-                      <span className="text-sm font-semibold text-gray-400">{ROOM_NUMBERS[room.slug]}</span>
-                      <span className="text-lg font-medium text-gray-900 group-hover:text-blue-700 transition-colors">{room.name}</span>
+                      <span className="text-sm font-semibold text-white/70">{ROOM_NUMBERS[room.slug]}</span>
+                      <span className="text-lg font-medium text-white group-hover:text-white/85 transition-colors">{room.name}</span>
                     </div>
                     <div className="pl-8">
                       <RoomBadges room={room} />
@@ -179,8 +225,8 @@ export default function Home() {
 
               {myReservations.length > 0 && (
                 <div className="mt-10">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">My reservations</p>
-                  <div className="flex flex-col gap-3">
+                  <p className="text-2xl font-bold text-white tracking-tight mb-4">My bookings</p>
+                  <div className="flex flex-col gap-4">
                     {myReservations.map(r => (
                       <div key={r.id} className="flex items-center justify-between gap-2 group">
                         <button
@@ -191,25 +237,25 @@ export default function Home() {
                           }}
                           className="text-left cursor-pointer min-w-0 flex-1"
                         >
-                          <p className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors truncate">{r.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
+                          <p className="text-lg font-medium text-white group-hover:text-white/60 transition-colors truncate">{r.title}</p>
+                          <p className="text-sm font-medium text-white/85 mt-1">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
                         </button>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
                             onClick={() => setEditingReservation(r)}
                             title="Edit booking"
-                            className="size-7 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-800 focus:outline-hidden transition-colors cursor-pointer"
+                            className="size-10 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:border-white/30 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="h-[18px] w-[18px]" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setCancellingReservation(r)}
                             title="Cancel booking"
-                            className="size-7 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-red-600 focus:outline-hidden transition-colors cursor-pointer"
+                            className="size-10 inline-flex items-center justify-center rounded-full border border-transparent text-white/50 hover:bg-red-500/25 hover:border-red-300/50 hover:text-white transition-colors cursor-pointer"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
@@ -221,6 +267,17 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {!selectedRoom && (
+        <div className="pointer-events-none absolute bottom-8 left-10 md:left-16 max-w-sm text-sm leading-relaxed text-white/80 animate-in fade-in duration-700">
+          <p>
+            <span className="text-white font-medium">Book a meeting room here.</span> No login needed.
+          </p>
+          <p className="mt-1.5 text-white/70">
+            Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.
+          </p>
+        </div>
+      )}
 
       {editingReservation && (
         <EditBookingModal

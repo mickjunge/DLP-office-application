@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import GlassButton from "@/components/GlassButton";
 import { toast } from "sonner";
 import { useRoomBookings, useMyBookingIds, type Booking } from "@/hooks/useBookings";
 import RoomTimeline, { currentStatus } from "@/components/RoomTimeline";
 import BookingForm, { defaultFormValues } from "@/components/BookingForm";
 import EditBookingModal from "@/components/EditBookingModal";
 import CancelBookingModal from "@/components/CancelBookingModal";
+import BookingDetailModal from "@/components/BookingDetailModal";
 
 export type Room = {
   id: string;
@@ -24,15 +26,18 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
   const [createFormKey, setCreateFormKey] = useState(0);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
-  const [slotPrefill, setSlotPrefill] = useState<Date | undefined>(undefined);
+  const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
+  // New object per click so clicking the same slot twice still re-applies it.
+  const [slotPrefill, setSlotPrefill] = useState<{ date: Date } | undefined>(undefined);
 
   const { bookings, isLoading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useRoomBookings(room.id);
   const myBookingIds = useMyBookingIds();
   const status = currentStatus(bookings);
 
   const handleSlotClick = (date: Date) => {
-    setSlotPrefill(date);
-    setCreateFormKey(k => k + 1);
+    // Only the date/time get filled in — the form is not remounted, so
+    // company and name the user already entered stay put.
+    setSlotPrefill({ date });
     createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     toast("Time filled in below", { duration: 1500 });
   };
@@ -44,53 +49,69 @@ export default function RoomDetailPanel({ room, onBack }: { room: Room; onBack: 
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
-        <ArrowLeft className="h-3.5 w-3.5" />
+      {/* Back sits above both columns so the room card and the agenda start at the same height. */}
+      <GlassButton onClick={onBack} className="glass-btn-outer--lg">
+        <ArrowLeft className="h-5 w-5" />
         Back
-      </button>
+      </GlassButton>
 
-      <div className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-base font-semibold text-gray-800">{room.name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {room.capacity ? `${room.capacity} seats · ` : ""}{room.location === "studio" ? "Studio" : "Office"}
-            </p>
-          </div>
-          <span className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-md ${status.busy ? "bg-amber-50 text-amber-600 border border-amber-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
-            {status.label}
-          </span>
-        </div>
-      </div>
+    <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,25rem)_minmax(0,25rem)] items-stretch">
+      <div className="flex flex-col">
+      <div className="glass-card"><div className="glass-card-inner">
+        <p className="text-2xl font-bold tracking-tight text-white">{room.name}</p>
+        <p className="text-[15px] text-white/90 mt-1">
+          {room.capacity ? `${room.capacity} seats · ` : ""}{room.location === "studio" ? "Studio" : "Office"}
+        </p>
+        <span className={`mt-3 inline-block whitespace-nowrap text-xs font-semibold uppercase tracking-[0.08em] px-3 py-1.5 rounded-full border ${status.busy ? "bg-red-500/25 text-red-100 border-red-300/50" : "bg-emerald-500/25 text-emerald-100 border-emerald-300/50"}`}>
+          {status.label}
+        </span>
+      </div></div>
 
-      <div ref={createFormRef} className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
-        <p className="text-base font-semibold text-gray-800 mb-3">Book this room</p>
+      <div ref={createFormRef} className="mt-4 glass-card flex-1"><div className="glass-card-inner h-full flex flex-col">
+        <p className="text-2xl font-bold text-white tracking-tight mb-5">Book this room</p>
         <BookingForm
           key={createFormKey}
-          initial={defaultFormValues(slotPrefill)}
+          roomName={room.name}
+          initial={defaultFormValues()}
+          slotPrefill={slotPrefill}
           bookings={bookings}
           onSubmit={async input => {
             await createBooking(input);
-            toast.success("Booked");
+          }}
+          // Runs once the confirmation popup's check animation has finished.
+          onBooked={() => {
             setSlotPrefill(undefined);
             setCreateFormKey(k => k + 1);
           }}
         />
+      </div></div>
       </div>
 
-      <div className="mt-4 bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4">
+      <div className="glass-card"><div className="glass-card-inner h-full flex flex-col">
+        <p className="text-2xl font-bold text-white tracking-tight mb-4">Agenda</p>
         {bookingsLoading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
+          <p className="text-[15px] text-white/90">Loading…</p>
         ) : (
           <RoomTimeline
             bookings={bookings}
             myBookingIds={myBookingIds}
-            onEdit={setEditingBooking}
-            onCancel={setCancellingBooking}
             onSlotClick={handleSlotClick}
+            onSelect={setViewingBooking}
           />
         )}
-      </div>
+      </div></div>
+    </div>
+
+      {viewingBooking && (
+        <BookingDetailModal
+          booking={viewingBooking}
+          roomName={room.name}
+          mine={myBookingIds.has(viewingBooking.id)}
+          onClose={() => setViewingBooking(null)}
+          onEdit={() => { setEditingBooking(viewingBooking); setViewingBooking(null); }}
+          onCancel={() => { setCancellingBooking(viewingBooking); setViewingBooking(null); }}
+        />
+      )}
 
       {editingBooking && (
         <EditBookingModal

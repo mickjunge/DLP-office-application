@@ -20,24 +20,24 @@ export default function EditBookingModal({
   onSave: (input: { title: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
 }) {
   return createPortal(
-    <div className="fixed inset-0 z-80 flex items-start justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-80 flex items-start justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div className="mt-7 w-full max-w-md mx-4 animate-in fade-in slide-in-from-top-4 duration-300" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-col bg-white border border-transparent shadow-2xs rounded-xl pointer-events-auto overflow-hidden">
+        <div className="glass-card pointer-events-auto"><div className="glass-card-inner !p-0 overflow-hidden rounded-[1.1875rem]">
           <div className="flex justify-between items-center py-3 px-4">
             <div>
-              <p className="text-sm font-semibold text-gray-800">Edit booking</p>
-              {roomName && <p className="text-xs text-gray-500 mt-0.5">{roomName}</p>}
+              <p className="eyebrow !text-white">Edit booking</p>
+              {roomName && <p className="text-sm text-white/85 mt-1">{roomName}</p>}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="size-7 inline-flex justify-center items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-hidden cursor-pointer"
+              className="size-8 inline-flex justify-center items-center rounded-full text-white/85 hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <div className="px-4 shrink-0">
-            <div className="border-b border-gray-200" />
+            <div className="border-b border-white/15" />
           </div>
           <div className="p-4">
             <BookingForm
@@ -52,7 +52,7 @@ export default function EditBookingModal({
               }}
             />
           </div>
-        </div>
+        </div></div>
       </div>
     </div>,
     document.body

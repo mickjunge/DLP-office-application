@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { useAnimatedViewBox, type ViewBox } from "@/hooks/useAnimatedViewBox";
 
 const FULL_BUILDING: ViewBox = [-1040.5, 14.5, 1029, 1136];
-const OVERVIEW: ViewBox = [-730, 253, 569, 818];
+// Tight on the two bookable rooms (their wall block spans x -631..-396, y 369..739
+// in this rotated space) with a margin, so they fill the right-hand side.
+const OVERVIEW: ViewBox = [-683, 329, 340, 450];
 const ROOM_ZOOM: Record<string, ViewBox> = {
   "small-conference-room": [-630, 308, 266, 277],
   "big-conference-room": [-675, 455, 315, 348],
   studio: [-452, 745, 236, 271],
 };
+
+// Intro: show the whole office block for a beat, then glide into the rooms.
+const INTRO_HOLD_MS = 0;
+const INTRO_ZOOM_MS = 1600;
 
 export type RoomSlug = keyof typeof ROOM_ZOOM;
 
@@ -35,12 +41,19 @@ export default function FloorPlan({
   // to the overview, each re-targeting the same in-flight tween rather
   // than restarting from scratch.
   const [introDone, setIntroDone] = useState(false);
+  const [introSettled, setIntroSettled] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setIntroDone(true), 300);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setIntroDone(true), INTRO_HOLD_MS);
+    const t2 = setTimeout(() => setIntroSettled(true), INTRO_HOLD_MS + INTRO_ZOOM_MS);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
   const target = !introDone ? FULL_BUILDING : zoomTo === "overview" ? OVERVIEW : ROOM_ZOOM[zoomTo];
-  const viewBox = useAnimatedViewBox(target, FULL_BUILDING, 900);
+  // The first zoom (whole building -> meeting rooms) is slower so it reads as
+  // an intro; every later move (room to room, back to overview) uses 900ms.
+  const viewBox = useAnimatedViewBox(target, FULL_BUILDING, introSettled ? 900 : INTRO_ZOOM_MS);
   // Overview: every room shows its live status. Zoomed into a specific
   // room: only that room keeps its status color — the other two go
   // plain white (not the neutral blue tint) until back on the overview,
@@ -58,43 +71,49 @@ export default function FloorPlan({
     // for this portrait-shaped room crop inside a landscape browser
     // window cropped away Studio almost entirely. Meet always shows the
     // complete viewBox, letterboxing only the shorter axis — and since
-    // that letterbox is plain white against a white page, it's invisible
+    // that letterbox is plain black against the black page, it's invisible
     // rather than looking like a visible box.
     <svg
       viewBox={viewBox.join(" ")}
       preserveAspectRatio="xMaxYMid meet"
       className="absolute inset-0 w-full h-full select-none"
+      // Content outside the animated viewBox still draws in the letterbox,
+      // so neighbouring walls would show up behind the left-hand panel;
+      // fade the map out toward the left edge instead of hard-clipping it.
+      style={{
+        WebkitMaskImage: "linear-gradient(to right, transparent 36%, #000 44%)",
+        maskImage: "linear-gradient(to right, transparent 36%, #000 44%)",
+      }}
     >
       <style>{`
-        .status-hidden { fill: #ffffff; cursor: pointer; transition: fill .2s ease; }
-        .status-hidden:hover { fill: #f3f4f6; }
-        .status-available { fill: #dcfce7; cursor: pointer; transition: fill .2s ease; }
-        .status-available:hover { fill: #bbf7d0; }
-        .status-busy { fill: #fee2e2; cursor: pointer; transition: fill .2s ease; }
-        .status-busy:hover { fill: #fecaca; }
-        .room-number { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #111111; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .status-hidden { fill: rgba(0,2,4,.55); cursor: pointer; transition: fill .2s ease; }
+        .status-hidden:hover { fill: rgba(255,255,255,.08); }
+        .status-available { fill: #16803c; cursor: pointer; transition: fill .2s ease; }
+        .status-available:hover { fill: #1d9a4a; }
+        .status-busy { fill: #b91c1c; cursor: pointer; transition: fill .2s ease; }
+        .status-busy:hover { fill: #d62828; }
+        .status-disabled { fill: rgba(0,2,4,.55); }
+        .room-number { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #ffffff; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
       `}</style>
-      <rect x={-1066} y={-11} width={1080} height={1187} fill="#fff" />
-      <g transform="rotate(90)">
-        <rect x={37} y={34} width={1091} height={984} fill="#fff" />
-
+            <g transform="rotate(90)">
+        
         <g id="rooms">
-          <rect x={37} y={34} width={1091} height={203} fill="#F9FAFB" />
-          <rect x={37} y={237} width={159} height={193} fill="#F9FAFB" />
-          <rect x={37} y={515} width={138} height={105} fill="#F9FAFB" />
-          <rect x={175} y={515} width={87} height={105} fill="#F9FAFB" />
-          <rect x={37} y={620} width={206} height={195} fill="#F9FAFB" />
-          <rect x={373} y={565} width={147} height={65} fill="#F9FAFB" />
-          <rect x={810} y={425} width={202} height={205} fill="#F9FAFB" />
-          <rect x={1012} y={430} width={116} height={256} fill="#F9FAFB" />
-          <rect x={1012} y={686} width={116} height={129} fill="#F9FAFB" />
-          <rect x={370} y={666} width={569} height={135} fill="#F9FAFB" />
-          <rect x={37} y={815} width={203} height={203} fill="#F9FAFB" />
-          <rect x={240} y={877} width={257} height={141} fill="#F9FAFB" />
-          <rect x={497} y={877} width={252} height={141} fill="#F9FAFB" />
-          <rect x={749} y={877} width={133} height={141} fill="#F9FAFB" />
-          <rect x={882} y={877} width={126} height={141} fill="#F9FAFB" />
-          <rect x={1008} y={877} width={120} height={141} fill="#F9FAFB" />
+          <rect x={37} y={34} width={1091} height={203} fill="rgba(0,2,4,.55)" />
+          <rect x={37} y={237} width={159} height={193} fill="rgba(0,2,4,.55)" />
+          <rect x={37} y={515} width={138} height={105} fill="rgba(0,2,4,.55)" />
+          <rect x={175} y={515} width={87} height={105} fill="rgba(0,2,4,.55)" />
+          <rect x={37} y={620} width={206} height={195} fill="rgba(0,2,4,.55)" />
+          <rect x={373} y={565} width={147} height={65} fill="rgba(0,2,4,.55)" />
+          <rect x={810} y={425} width={202} height={205} fill="rgba(0,2,4,.55)" />
+          <rect x={1012} y={430} width={116} height={256} fill="rgba(0,2,4,.55)" />
+          <rect x={1012} y={686} width={116} height={129} fill="rgba(0,2,4,.55)" />
+          <rect x={370} y={666} width={569} height={135} fill="rgba(0,2,4,.55)" />
+          <rect x={37} y={815} width={203} height={203} fill="rgba(0,2,4,.55)" />
+          <rect x={240} y={877} width={257} height={141} fill="rgba(0,2,4,.55)" />
+          <rect x={497} y={877} width={252} height={141} fill="rgba(0,2,4,.55)" />
+          <rect x={749} y={877} width={133} height={141} fill="rgba(0,2,4,.55)" />
+          <rect x={882} y={877} width={126} height={141} fill="rgba(0,2,4,.55)" />
+          <rect x={1008} y={877} width={120} height={141} fill="rgba(0,2,4,.55)" />
 
           {/* Bookable rooms — coordinates are the exact inner wall cavity
               for each room, read directly off the walls path's own
@@ -104,7 +123,8 @@ export default function FloorPlan({
               edges and leave a gap on others. Sharp corners (no rx) to
               match the real architecture — see the earlier fix for why a
               rounded fill read as wrong here. */}
-          <rect x={811.38} y={282.38} width={138.24} height={103.24} className={roomClass("studio")} onClick={() => onSelectRoom?.("studio")} />
+          {/* Studio (room 03) is switched off for now: plain floor, no number, not clickable. */}
+          <rect x={811.38} y={282.38} width={138.24} height={103.24} className="status-disabled" />
           <rect x={372.38} y={428.62} width={146.24} height={135} className={roomClass("small-conference-room")} onClick={() => onSelectRoom?.("small-conference-room")} />
           <rect x={521.38} y={428.62} width={215.24} height={178} className={roomClass("big-conference-room")} onClick={() => onSelectRoom?.("big-conference-room")} />
         </g>
@@ -115,39 +135,48 @@ export default function FloorPlan({
             elevator/stair hatching, kitchen counters) was removed as
             visual noise that made this read as a technical drawing
             instead of a booking-app map. */}
-        <g id="furniture">
-          <circle cx={447} cy={493} r={31} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <rect x={573} y={497} width={132} height={41} rx={3} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+        {/* pointer-events none: hovering/clicking a table or chair falls through to the room fill underneath, so it counts as part of the room. */}
+        <g id="furniture" pointerEvents="none">
+          <circle cx={447} cy={493} r={31} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <rect x={573} y={497} width={132} height={41} rx={3} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
 
           {/* Chairs — 5 around the round table (matches capacity 5),
               6 per long side of the rectangular table (12 total, matches
               capacity 12). Positions computed from the table geometry
               above, not eyeballed. */}
-          <circle cx={447} cy={452} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={486} cy={480.3} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={471.1} cy={526.2} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={422.9} cy={526.2} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={408} cy={480.3} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={447} cy={452} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={486} cy={480.3} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={471.1} cy={526.2} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={422.9} cy={526.2} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={408} cy={480.3} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
 
-          <circle cx={584} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={606} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={628} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={650} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={672} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={694} cy={486} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={584} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={606} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={628} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={650} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={672} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
-          <circle cx={694} cy={549} r={6} fill="#FFFFFF" stroke="#9CA3AF" strokeWidth={0.8} />
+          <circle cx={584} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={606} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={628} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={650} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={672} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={694} cy={486} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={584} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={606} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={628} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={650} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={672} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
+          <circle cx={694} cy={549} r={6} fill="#000204" stroke="#8a9096" strokeWidth={0.8} />
         </g>
 
-        <path
-          fill="#374151"
-          fillRule="evenodd"
-          d="M1130.50 34.00 L1130.50 31.50 L1125.50 31.50 L39.50 31.50 L37.00 31.50 L34.50 31.50 L34.50 36.50 L34.50 1015.50 L34.50 1018.00 L34.50 1020.50 L39.50 1020.50 L1125.50 1020.50 L1128.00 1020.50 L1130.50 1020.50 L1130.50 1015.50 L1130.50 36.50 L1130.50 34.00Z M430.62 238.38 L433.38 238.38 L622.62 238.38 L625.38 238.38 L815.62 238.38 L818.38 238.38 L1007.62 238.38 L1010.38 238.38 L1125.50 238.38 L1125.50 428.62 L1014.50 428.62 L1014.50 427.50 L1014.50 425.00 L1014.50 422.50 L1009.50 422.50 L812.50 422.50 L810.00 422.50 L807.50 422.50 L807.50 427.50 L807.50 627.50 L807.50 630.00 L807.50 632.50 L812.50 632.50 L928.00 632.50 L930.50 632.50 L930.50 627.50 L812.50 627.50 L812.50 556.38 L871.62 556.38 L874.38 556.38 L923.00 556.38 L924.38 556.38 L924.38 553.62 L874.38 553.62 L874.38 456.38 L921.62 456.38 L921.62 525.00 L921.62 526.38 L924.38 526.38 L924.38 456.38 L924.38 453.62 L924.38 427.50 L1009.50 427.50 L1009.50 627.50 L1004.00 627.50 L1001.50 627.50 L1001.50 632.50 L1009.50 632.50 L1010.62 632.50 L1010.62 684.62 L1010.62 687.38 L1010.62 813.62 L1010.62 815.00 L1010.62 816.38 L1013.38 816.38 L1125.50 816.38 L1125.50 875.62 L1009.38 875.62 L1006.62 875.62 L883.38 875.62 L880.62 875.62 L750.38 875.62 L747.62 875.62 L498.38 875.62 L495.62 875.62 L241.38 875.62 L241.38 873.00 L241.38 871.62 L238.62 871.62 L238.62 875.62 L238.62 878.38 L238.62 1015.50 L39.50 1015.50 L39.50 816.38 L238.62 816.38 L238.62 819.00 L238.62 820.38 L241.38 820.38 L241.38 816.38 L322.62 816.38 L324.00 816.38 L325.38 816.38 L325.38 813.62 L325.38 645.00 L325.38 643.62 L322.62 643.62 L322.62 813.62 L241.38 813.62 L238.62 813.62 L39.50 813.62 L39.50 621.38 L173.62 621.38 L176.38 621.38 L239.62 621.38 L239.62 775.00 L239.62 776.38 L242.38 776.38 L242.38 621.38 L260.62 621.38 L262.00 621.38 L263.38 621.38 L263.38 618.62 L263.38 516.38 L327.00 516.38 L328.38 516.38 L328.38 513.62 L263.38 513.62 L260.62 513.62 L176.38 513.62 L175.00 513.62 L173.62 513.62 L173.62 516.38 L173.62 580.38 L39.50 580.38 L39.50 516.38 L120.62 516.38 L122.00 516.38 L123.38 516.38 L123.38 513.62 L123.38 431.38 L194.62 431.38 L196.00 431.38 L197.38 431.38 L197.38 428.62 L197.38 238.38 L236.62 238.38 L239.38 238.38 L430.62 238.38Z M1010.38 235.62 L1010.38 36.50 L1125.50 36.50 L1125.50 235.62 L1010.38 235.62Z M818.38 235.62 L818.38 36.50 L1007.62 36.50 L1007.62 235.62 L818.38 235.62Z M197.38 235.62 L194.62 235.62 L39.50 235.62 L39.50 36.50 L236.62 36.50 L236.62 235.62 L197.38 235.62Z M430.62 36.50 L430.62 235.62 L239.38 235.62 L239.38 36.50 L430.62 36.50Z M622.62 36.50 L622.62 235.62 L433.38 235.62 L433.38 36.50 L622.62 36.50Z M123.38 428.62 L122.00 428.62 L120.62 428.62 L120.62 431.38 L120.62 513.62 L39.50 513.62 L39.50 238.38 L194.62 238.38 L194.62 428.62 L123.38 428.62Z M176.38 516.38 L260.62 516.38 L260.62 580.38 L176.38 580.38 L176.38 516.38Z M39.50 618.62 L39.50 581.62 L173.62 581.62 L173.62 618.62 L39.50 618.62Z M239.62 618.62 L176.38 618.62 L176.38 581.62 L260.62 581.62 L260.62 618.62 L242.38 618.62 L239.62 618.62Z M625.38 235.62 L625.38 36.50 L815.62 36.50 L815.62 235.62 L625.38 235.62Z M241.38 878.38 L495.62 878.38 L495.62 1015.50 L241.38 1015.50 L241.38 878.38Z M871.62 456.38 L871.62 553.62 L812.50 553.62 L812.50 456.38 L871.62 456.38Z M874.38 453.62 L871.62 453.62 L812.50 453.62 L812.50 427.50 L921.62 427.50 L921.62 453.62 L874.38 453.62Z M1009.38 878.38 L1125.50 878.38 L1125.50 1015.50 L1009.38 1015.50 L1009.38 878.38Z M883.38 878.38 L1006.62 878.38 L1006.62 1015.50 L883.38 1015.50 L883.38 878.38Z M750.38 878.38 L880.62 878.38 L880.62 1015.50 L750.38 1015.50 L750.38 878.38Z M498.38 1015.50 L498.38 878.38 L747.62 878.38 L747.62 1015.50 L498.38 1015.50Z M1014.50 431.38 L1125.50 431.38 L1125.50 684.62 L1013.38 684.62 L1013.38 632.50 L1014.50 632.50 L1014.50 627.50 L1014.50 431.38Z M1013.38 687.38 L1125.50 687.38 L1125.50 813.62 L1013.38 813.62 L1013.38 687.38Z M369.62 563.62 L369.62 566.38 L369.62 628.62 L369.62 630.00 L369.62 631.38 L372.38 631.38 L518.62 631.38 L520.00 631.38 L521.38 631.38 L521.38 628.62 L521.38 609.38 L736.62 609.38 L738.00 609.38 L739.38 609.38 L739.38 606.62 L739.38 398.00 L739.38 396.62 L736.62 396.62 L736.62 397.38 L372.38 397.38 L372.38 396.62 L369.62 396.62 L369.62 563.62Z M372.38 566.38 L518.62 566.38 L518.62 606.62 L518.62 609.38 L518.62 628.62 L372.38 628.62 L372.38 566.38Z M372.38 428.62 L518.62 428.62 L518.62 563.62 L372.38 563.62 L372.38 428.62Z M736.62 428.62 L736.62 606.62 L521.38 606.62 L521.38 566.38 L521.38 563.62 L521.38 428.62 L736.62 428.62Z M736.62 398.62 L736.62 427.38 L372.38 427.38 L372.38 398.62 L736.62 398.62Z M808.62 282.38 L808.62 385.62 L808.62 387.00 L808.62 388.38 L811.38 388.38 L949.62 388.38 L951.00 388.38 L952.38 388.38 L952.38 385.62 L952.38 282.38 L952.38 281.00 L952.38 279.62 L949.62 279.62 L811.38 279.62 L810.00 279.62 L808.62 279.62 L808.62 282.38Z M811.38 282.38 L949.62 282.38 L949.62 385.62 L811.38 385.62 L811.38 282.38Z"
-        />
+        <g id="walls" fill="none" stroke="#d9d9d9" strokeWidth={2.76} strokeLinecap="square">
+          <path d="M37 34 H1128 M37 237 H1128 M122 430 H196 M810 455 H923 M37 515 H122 M175 515 H327 M810 555 H923 M37 581 H262 M37 620 H262 M37 815 H324 M240 877 H1128 M37 1018 H1128 M810 281 H951 M810 387 H951 M810 425 H1012 M1012 430 H1128 M810 630 H929.12 M1002.88 630 H1012 M1012 686 H1128 M1012 815 H1128 M238 34 V237 M196 237 V430 M122 430 V515 M37 34 V1018 M175 515 V620 M262 515 V620 M241 620 V775 M240 873 V1018 M432 34 V237 M624 34 V237 M817 34 V237 M810 281 V387 M873 455 V555 M810 425 V630 M324 645 V815 M497 877 V1018 M749 877 V1018 M882 877 V1018 M1009 34 V237 M951 281 V387 M923 425 V525 M1128 34 V1018 M1012 425 V815 M1008 877 V1018" />
+        </g>
+
+
+        {/* Walls around rooms 01/02, drawn as constant-width strokes instead of
+            the hand-traced outline (which varied from ~1.2 to ~2.8 thick).
+            Centerlines sit exactly half a wall (1.38) outside the room
+            fills' edges, so fills stay flush with the wall faces. */}
+        <g id="room-walls" fill="none" stroke="#d9d9d9" strokeWidth={2.76} strokeLinejoin="miter">
+          <path d="M371 398 H738 V608 H520 V630 H371 Z" />
+          <path d="M371 427.24 H738 M371 565 H520 M520 427.24 V608" />
+        </g>
 
         {/* Room numbers, top-to-bottom in the final rendered orientation:
             01 Small conference, 02 Big conference, 03 Studio. Anchored
@@ -160,7 +189,6 @@ export default function FloorPlan({
         <g id="room-numbers">
           <text className="room-number" x={395} y={543} transform="rotate(-90 395 543)">01</text>
           <text className="room-number" x={542} y={588} transform="rotate(-90 542 588)">02</text>
-          <text className="room-number" x={832} y={365} transform="rotate(-90 832 365)">03</text>
         </g>
       </g>
     </svg>

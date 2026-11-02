@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking } from "@/hooks/useBookings";
 import { friendlyError } from "@/lib/friendlyError";
+import GlassButton from "@/components/GlassButton";
 
 export default function CancelBookingModal({
   booking,
@@ -30,47 +31,37 @@ export default function CancelBookingModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-80 flex items-start justify-center bg-black/40 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-80 flex items-start justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div className="mt-7 w-full max-w-sm mx-4 animate-in fade-in slide-in-from-top-4 duration-300" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-col bg-white border border-transparent shadow-2xs rounded-xl pointer-events-auto overflow-hidden">
+        <div className="glass-card pointer-events-auto"><div className="glass-card-inner !p-0 overflow-hidden rounded-[1.1875rem]">
           <div className="flex justify-between items-center py-3 px-4">
-            <p className="text-sm font-semibold text-gray-800">Cancel booking</p>
+            <p className="eyebrow !text-white">Cancel booking</p>
             <button
               type="button"
               onClick={onClose}
-              className="size-7 inline-flex justify-center items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-hidden cursor-pointer"
+              className="size-8 inline-flex justify-center items-center rounded-full text-white/85 hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
           <div className="px-4 shrink-0">
-            <div className="border-b border-gray-200" />
+            <div className="border-b border-white/15" />
           </div>
           <div className="p-4">
-            <p className="text-sm text-gray-600">
-              Cancel <span className="font-medium text-gray-800">"{booking.title}"</span>
+            <p className="text-sm text-white/92">
+              Cancel <span className="font-medium text-white">"{booking.title}"</span>
               {roomName ? ` in ${roomName}` : ""}? This can't be undone.
             </p>
           </div>
           <div className="flex justify-end items-center gap-2 py-3 px-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden transition-colors cursor-pointer"
-            >
+            <GlassButton size="sm" onClick={onClose}>
               Keep booking
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={loading}
-              style={{ background: "rgba(220,38,38,0.9)" }}
-              className="h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-transparent text-white shadow-sm focus:outline-hidden transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-            >
+            </GlassButton>
+            <GlassButton size="sm" tone="danger" onClick={handleConfirm} disabled={loading}>
               {loading ? "Cancelling…" : "Cancel booking"}
-            </button>
+            </GlassButton>
           </div>
-        </div>
+        </div></div>
       </div>
     </div>,
     document.body

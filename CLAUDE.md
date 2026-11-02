@@ -1,45 +1,32 @@
 # DLP-office-application — Office Hub
 
-React + TypeScript + Tailwind + Supabase + Vite. Office hub for reserving meeting rooms and the studio at David Lewis Productions.
+React + TypeScript + Tailwind + Supabase + Vite. Office hub for booking meeting rooms and the studio at David Lewis Productions.
 
 This is a **separate project** from DLP-Artists-hub (`artists.davidlewis.nl`) — separate repo, separate Supabase project, separate Vercel project. Do not assume shared database, auth users, or deployment with that app. If a task references Artists Hub data or code, that's a different working directory (`DLP-Artists-hub`), not this one.
 
 ## Stack
 
 - Vite + React 19 + TypeScript, path alias `@/*` → `src/*`.
-- Tailwind v4 via `@tailwindcss/vite`, themed with the same shared design system as Artists Hub: `preline` is a real dependency (wired in `src/main.tsx` / `src/index.css`), with the same `src/themes/theme.css` token set (`--background`, `--foreground`, `--border`, etc.) copied from there. This is the one thing that's meant to stay in sync between the two apps — if Artists Hub's `theme.css` changes, mirror it here.
+- Tailwind v4 via `@tailwindcss/vite`, themed to match davidlewis.nl (see UI conventions below); `preline` is still a dependency (wired in `src/main.tsx` / `src/index.css`).
 - Supabase (`src/integrations/supabase/client.ts`) for data only — **no auth for now**. The app is a public page for the whole office; anyone can view/create/edit/cancel a booking. `bookings` has a free-text `booked_by` name column instead of a `user_id`, and RLS grants full access to the `anon` role. If real auth is reintroduced later, that RLS model (migration `20260930130000_public_no_auth.sql`) needs to be revisited first — don't add a login page without also locking the policies back down.
 - `@tanstack/react-query` for data fetching, `react-router-dom` for routing, Radix UI for interactive primitives (tooltip/dialog/dropdown), `sonner` for toasts.
 - Local dev runs on port **8081** (Artists Hub uses 8080) so both can run side by side.
 
-## Preline: how it's actually used here
+## Preline
 
-Same as Artists Hub: `preline` is a real dependency, but **no component in this app uses Preline's own JS** — everything interactive (modals, dropdowns, tooltips) is hand-built with Radix UI, styled to match Preline's visual language. "Use Preline" here means match the class conventions below, not import Preline components or add `data-hs-*` attributes.
+`preline` is a real dependency, but **no component here uses Preline's own JS or `data-hs-*` attributes** — everything interactive (modals, dropdowns, tooltips) is hand-built with Radix UI. Visual styling follows the davidlewis.nl look below, not Preline's class conventions.
 
-## UI conventions (shared with Artists Hub)
+## UI conventions — davidlewis.nl look
 
-### Buttons
-```
-// Primary (dark)
-"h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-white/10 bg-neutral-700 text-white shadow-sm hover:bg-neutral-600 focus:outline-hidden transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+The app is styled after the marketing site (davidlewis.nl) and the Artists Hub login page, **dark** and monochrome. This supersedes the earlier light, Preline-class-based styling and the "keep theme.css in sync with Artists Hub" rule: this app's `src/themes/theme.css` is now intentionally its own (near-black `#000204`, white text, Helvetica Neue). No accent hue — status red/green on the floor plan is the only color.
 
-// Secondary (white/outline)
-"h-8 inline-flex items-center gap-1.5 px-3 text-sm font-[450] rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-
-// Icon-only (square)
-"size-8 inline-flex justify-center items-center rounded-lg bg-gray-100 border border-transparent text-gray-800 hover:bg-gray-200 focus:outline-hidden cursor-pointer"
-```
-
-### Inputs
-```
-const inputCls = "h-9 w-full px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-800 placeholder:text-gray-500 focus:outline-hidden focus:border-gray-400 transition-colors disabled:bg-gray-50 disabled:text-gray-800 disabled:pointer-events-none";
-```
-
-### Cards
-```
-"bg-white border border-black/[0.06] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.05)] px-5 py-4"
-```
-Card title: `"text-base font-semibold text-gray-800"`, description: `"text-sm text-gray-500 mt-0.5"`.
+All shared styles live in `src/index.css`; reuse them, don't re-inline:
+- `GlassButton` (`src/components/GlassButton.tsx`) — pill with translucent fill and a glowing 1px ring. `tone="primary"` is the solid-white main action (as on the Artists Hub login), `tone="danger"` for destructive, `size="sm"`, `icon`.
+- `.glass-card` + `.glass-card-inner` — frosted panel (`bg-black/35`, heavy blur, 1px white/12 border, inner top highlight), same as the login form.
+- `.glass-input` — pill input. `.eyebrow` — small uppercase tracked-out labels/section titles.
+- Small controls (chips, round icon buttons): `rounded-full border border-white/20 bg-white/[0.04] hover:bg-white/15`.
+- Toasts are styled globally in `index.css` (dark glass).
+- Logo/background assets (`logo-transparent.png`, `login-bg.avif`) are copied from Artists Hub `public/`.
 
 ### Tooltips
 Always Radix, always instant, always above:
@@ -58,12 +45,12 @@ Always Radix, always instant, always above:
 ### Success confirmation
 Animated checkmark overlay (classes defined once in `src/index.css`, never redefine locally):
 ```tsx
-<div className="absolute inset-0 z-10 bg-white flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200 rounded-xl">
+<div className="absolute inset-0 z-10 bg-[#0a0d0f] flex flex-col items-center justify-center gap-3 animate-in fade-in duration-200 rounded-2xl">
   <svg viewBox="0 0 32 32" className="size-12">
     <circle cx="16" cy="16" r="15" fill="none" stroke="#10b981" strokeWidth="2" className="success-check-circle" />
     <path d="M9 16.5 L14 21.5 L23 11" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="success-check-mark" />
   </svg>
-  <p className="text-sm font-medium text-gray-800 animate-in fade-in duration-300">Saved</p>
+  <p className="text-sm font-medium text-white animate-in fade-in duration-300">Saved</p>
 </div>
 ```
 
