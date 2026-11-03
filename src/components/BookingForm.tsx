@@ -24,19 +24,18 @@ export function toTimeInputValue(d: Date) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export type FormValues = { title: string; company: string; bookedBy: string; date: string; startTime: string; endTime: string };
+export type FormValues = { company: string; bookedBy: string; date: string; startTime: string; endTime: string };
 
 export function defaultFormValues(date?: Date): FormValues {
   const d = date ?? new Date();
   const start = new Date(d);
   if (!date) { start.setMinutes(0, 0, 0); start.setHours(start.getHours() + 1); } // next full hour if no explicit slot
   const end = new Date(start.getTime() + 30 * 60000);
-  return { title: "", company: "", bookedBy: "", date: toDateInputValue(d), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
+  return { company: "", bookedBy: "", date: toDateInputValue(d), startTime: toTimeInputValue(start), endTime: toTimeInputValue(end) };
 }
 
 export function bookingToFormValues(booking: Booking): FormValues {
   return {
-    title: booking.title,
     company: booking.company ?? "",
     bookedBy: booking.booked_by,
     date: toDateInputValue(new Date(booking.starts_at)),
@@ -79,7 +78,7 @@ export default function BookingForm({
   initial: FormValues;
   bookings: Booking[];
   excludeBookingId?: string;
-  onSubmit: (input: { title: string; company: string | null; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
+  onSubmit: (input: { company: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
   // Creating only: called after the success animation in the confirmation popup.
   onBooked?: () => void;
   onCancel?: () => void;
@@ -112,9 +111,9 @@ export default function BookingForm({
     set("endTime", `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
   };
 
-  // Company is required for new bookings; older bookings (no company) can be
-  // edited without picking one.
-  const isComplete = !!(values.title && values.date && values.startTime && values.endTime && (editing || (values.bookedBy && values.company)));
+  // The company is the booking's title, so it is always required (older
+  // bookings without one must pick one when edited).
+  const isComplete = !!(values.company && values.date && values.startTime && values.endTime && (editing || values.bookedBy));
   // Client-side check against the bookings already loaded for this
   // room — catches the common case (picking an obviously-taken slot)
   // before ever submitting. The server-side exclusion constraint still
@@ -130,7 +129,6 @@ export default function BookingForm({
   // When editing, Save only does something once a field differs from the
   // booking as it was opened (the name isn't editable, so it's not compared).
   const changed =
-    values.title !== initial.title ||
     values.company !== initial.company ||
     values.date !== initial.date ||
     values.startTime !== initial.startTime ||
@@ -170,8 +168,7 @@ export default function BookingForm({
     setSubmitting(true);
     try {
       await onSubmit({
-        title: values.title,
-        company: values.company || null,
+        company: values.company,
         bookedBy: values.bookedBy,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
@@ -192,27 +189,22 @@ export default function BookingForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
       <div>
-        <label className="block mb-2 eyebrow">Title<span className="text-white/40 ml-0.5">*</span></label>
-        <input className={inputCls} value={values.title} onChange={e => set("title", e.target.value)} placeholder="Title" />
-      </div>
-      <div>
-        <label className="block mb-2 eyebrow">Company{!editing && <span className="text-white/40 ml-0.5">*</span>}</label>
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Company">
+        <label className="block mb-2 eyebrow">Company<span className="text-white/40 ml-0.5">*</span></label>
+        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2" role="radiogroup" aria-label="Company">
           {COMPANIES.map(c => (
             <button
               key={c.code}
               type="button"
               role="radio"
               aria-checked={values.company === c.code}
-              onClick={() => set("company", values.company === c.code && editing ? "" : c.code)}
-              title={c.name}
-              className={`h-10 max-md:h-11 px-5 text-sm rounded-full border transition-colors cursor-pointer ${
+              onClick={() => set("company", c.code)}
+              className={`min-h-10 max-md:min-h-11 max-md:py-1 px-4 md:px-5 text-sm max-md:leading-tight rounded-full border transition-colors cursor-pointer ${
                 values.company === c.code
                   ? "bg-white text-black border-white font-semibold"
                   : "border-white/25 bg-white/[0.04] text-white/85 hover:bg-white/15 hover:text-white"
               }`}
             >
-              {c.code}
+              {c.name}
             </button>
           ))}
         </div>
@@ -227,7 +219,7 @@ export default function BookingForm({
         <label className="block mb-2 eyebrow">Date<span className="text-white/70 ml-0.5">*</span></label>
         <input type="date" className={inputCls} value={values.date} onChange={e => set("date", e.target.value)} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 [&>div]:min-w-0">
         <div>
           <label className="block mb-2 eyebrow">Start<span className="text-white/70 ml-0.5">*</span></label>
           <input type="time" className={inputCls} value={values.startTime} onChange={e => set("startTime", e.target.value)} />
@@ -267,7 +259,6 @@ export default function BookingForm({
       {confirming && startsAt && endsAt && roomName && (
         <ConfirmBookingModal
           roomName={roomName}
-          title={values.title}
           company={values.company}
           bookedBy={values.bookedBy}
           startsAt={startsAt}

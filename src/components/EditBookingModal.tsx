@@ -21,7 +21,7 @@ export default function EditBookingModal({
   // Skip the entrance animation: set when this popup replaces another one
   // (the booking details popup), so there is no blank moment in between.
   instant?: boolean;
-  onSave: (input: { title: string; company: string | null; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
+  onSave: (input: { company: string; bookedBy: string; startsAt: string; endsAt: string }) => Promise<void>;
 }) {
   return createPortal(
     <div className={`fixed inset-0 z-80 flex items-start justify-center bg-black/70 backdrop-blur-sm ${instant ? "" : "animate-in fade-in duration-200"}`} onClick={onClose}>

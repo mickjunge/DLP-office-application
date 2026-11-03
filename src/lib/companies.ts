@@ -4,7 +4,7 @@ export const COMPANIES = [
   { code: "DLP", name: "David Lewis Productions" },
   { code: "BTB", name: "Buddha to Buddha" },
   { code: "PIXEL", name: "Pixel Artist Management" },
-  { code: "OTHER", name: "Other" },
+  { code: "EM", name: "Entertainment Matters" },
 ] as const;
 
 export function companyName(code: string | null | undefined) {

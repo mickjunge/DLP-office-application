@@ -149,8 +149,8 @@ export default function RoomTimeline({
           {dayBookings.map(b => {
             const style = blockStyle(b, selectedDate);
             const mine = myBookingIds.has(b.id);
-            // The agenda shows the company (full name); the title is in the details popup.
-            const label = companyName(b.company) ?? b.title;
+            // The company (full name) is the booking's title.
+            const label = companyName(b.company) ?? "Booking";
             const timeRange = `${shortTime(new Date(b.starts_at))} – ${shortTime(new Date(b.ends_at))}`;
             const minutes = (new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime()) / 60000;
             // Blocks are sized exactly to their time span (no minimum height,
@@ -168,7 +168,7 @@ export default function RoomTimeline({
                 tabIndex={0}
                 onClick={() => onSelect?.(b)}
                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(b); } }}
-                title={`${label}${b.company ? ` — ${b.title}` : ""} · ${timeRange} · ${b.booked_by} — click for details`}
+                title={`${label} · ${timeRange} · ${b.booked_by} — click for details`}
                 style={{ top: `calc(${style.top}% + 1px)`, height: `calc(${style.height}% - 2px)` }}
                 className={`absolute inset-x-1 rounded-md px-2 overflow-hidden cursor-pointer transition-all duration-150 hover:z-10 hover:scale-[1.02] hover:shadow-[0_0_0_2px_rgba(255,255,255,0.95),0_6px_20px_rgba(0,0,0,0.5)] ${
                   tiny ? "flex items-center" : short ? "py-0.5 border" : "py-1 border"

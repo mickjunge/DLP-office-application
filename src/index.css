@@ -184,6 +184,13 @@
 /* color-scheme: dark already draws the picker icons light; inverting them
    again (as before) turned them dark, so just make them fully opaque. */
 .glass-input { color-scheme: dark; }
+/* iOS Safari gives date/time inputs their own intrinsic width and native
+   rendering, which makes them spill over neighbouring fields; force them to
+   behave like the text inputs. */
+.glass-input { display: block; min-width: 0; max-width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+input.glass-input[type="date"],
+input.glass-input[type="time"] { text-align: left; line-height: 1; }
+input.glass-input::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
 .glass-input::-webkit-calendar-picker-indicator { opacity: 1; cursor: pointer; }
 
 /* ── Sonner toasts ─────────────────────────────────────────── */

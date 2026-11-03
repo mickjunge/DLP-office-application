@@ -1,3 +1,4 @@
+import { companyName } from "@/lib/companies";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Tv, Pencil, X } from "lucide-react";
@@ -270,7 +271,7 @@ export default function Home() {
                           }}
                           className="text-left cursor-pointer min-w-0 flex-1"
                         >
-                          <p className="text-lg font-medium text-white group-hover:text-white/60 transition-colors truncate">{r.title}</p>
+                          <p className="text-lg font-medium text-white group-hover:text-white/60 transition-colors truncate">{companyName(r.company) ?? "Booking"}</p>
                           <p className="text-sm font-medium text-white/85 mt-1">{r.roomName} · {reservationLabel(r.starts_at, r.ends_at)}</p>
                         </button>
                         <div className="flex items-center gap-2 shrink-0">

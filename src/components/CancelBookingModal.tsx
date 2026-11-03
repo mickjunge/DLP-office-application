@@ -1,3 +1,4 @@
+import { companyName } from "@/lib/companies";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -53,7 +54,7 @@ export default function CancelBookingModal({
           </div>
           <div className="p-4">
             <p className="text-sm text-white/92">
-              Cancel <span className="font-medium text-white">"{booking.title}"</span>
+              Cancel <span className="font-medium text-white">{companyName(booking.company) ?? "this booking"}</span>
               {roomName ? ` in ${roomName}` : ""}? This can't be undone.
             </p>
           </div>

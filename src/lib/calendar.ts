@@ -5,7 +5,6 @@
 // here don't update it.
 
 export type CalendarEvent = {
-  title: string;
   roomName: string;
   bookedBy: string;
   company?: string;
@@ -17,6 +16,11 @@ const LOCATION = "David Lewis Productions";
 
 function utc(d: Date) {
   return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+// The company is the event title (booking titles no longer exist).
+function title(e: CalendarEvent) {
+  return e.company ?? "Room booking";
 }
 
 function details(e: CalendarEvent) {
@@ -64,7 +68,7 @@ export function buildIcs(e: CalendarEvent) {
     `DTSTAMP:${utc(new Date())}`,
     `DTSTART:${utc(e.startsAt)}`,
     `DTEND:${utc(e.endsAt)}`,
-    `SUMMARY:${escapeText(e.title)}`,
+    `SUMMARY:${escapeText(title(e))}`,
     `LOCATION:${escapeText(place(e))}`,
     `DESCRIPTION:${escapeText(details(e))}`,
     "END:VEVENT",
@@ -88,7 +92,7 @@ export function downloadIcs(e: CalendarEvent) {
 export function googleCalendarUrl(e: CalendarEvent) {
   const q = new URLSearchParams({
     action: "TEMPLATE",
-    text: e.title,
+    text: title(e),
     dates: `${utc(e.startsAt)}/${utc(e.endsAt)}`,
     details: details(e),
     location: place(e),
@@ -103,7 +107,7 @@ export function outlookUrl(e: CalendarEvent, account: "work" | "personal") {
   const q = new URLSearchParams({
     path: "/calendar/action/compose",
     rru: "addevent",
-    subject: e.title,
+    subject: title(e),
     startdt: e.startsAt.toISOString(),
     enddt: e.endsAt.toISOString(),
     body: details(e),
