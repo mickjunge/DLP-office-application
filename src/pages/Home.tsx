@@ -12,7 +12,7 @@ import FindBookingModal from "@/components/FindBookingModal";
 import { HIDDEN_ROOM_SLUGS } from "@/lib/rooms";
 import { useRoomsStatus } from "@/hooks/useRoomsStatus";
 import { useMyReservations, type MyReservation } from "@/hooks/useMyReservations";
-import { updateBookingRpc, cancelBookingRpc, type Booking } from "@/hooks/useBookings";
+import { updateBookingRpc, cancelBookingRpc, useMyBookingIds, type Booking } from "@/hooks/useBookings";
 
 const ROOM_NUMBERS: Record<string, string> = {
   "small-conference-room": "01",
@@ -36,13 +36,20 @@ function reservationLabel(startsAt: string, endsAt: string) {
 
 function Blurb() {
   const [findOpen, setFindOpen] = useState(false);
+  // The explanation is only for first-time visitors; once this browser has
+  // made a booking it has seen My bookings, so just the help link remains.
+  const hasBooked = useMyBookingIds().size > 0;
   return (
     <div className="text-sm leading-relaxed text-white/80 animate-in fade-in duration-700">
       <p>
         <span className="text-white font-medium">Book a meeting room here.</span> No login needed.
       </p>
       <p className="mt-1.5 text-white/70">
-        Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.{" "}
+        {!hasBooked && (
+          <>
+            Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.{" "}
+          </>
+        )}
         <button
           type="button"
           onClick={() => setFindOpen(true)}
