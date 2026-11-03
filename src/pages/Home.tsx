@@ -8,6 +8,7 @@ import FloorPlan, { type RoomSlug } from "@/components/FloorPlan";
 import RoomDetailPanel, { type Room } from "@/components/RoomDetailPanel";
 import EditBookingModal from "@/components/EditBookingModal";
 import CancelBookingModal from "@/components/CancelBookingModal";
+import FindBookingModal from "@/components/FindBookingModal";
 import { HIDDEN_ROOM_SLUGS } from "@/lib/rooms";
 import { useRoomsStatus } from "@/hooks/useRoomsStatus";
 import { useMyReservations, type MyReservation } from "@/hooks/useMyReservations";
@@ -34,23 +35,32 @@ function reservationLabel(startsAt: string, endsAt: string) {
 }
 
 function Blurb() {
+  const [findOpen, setFindOpen] = useState(false);
   return (
     <div className="text-sm leading-relaxed text-white/80 animate-in fade-in duration-700">
       <p>
         <span className="text-white font-medium">Book a meeting room here.</span> No login needed.
       </p>
       <p className="mt-1.5 text-white/70">
-        Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.
+        Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.{" "}
+        <button
+          type="button"
+          onClick={() => setFindOpen(true)}
+          className="pointer-events-auto text-white underline underline-offset-2 hover:text-white/80 transition-colors cursor-pointer"
+        >
+          Can't find your booking?
+        </button>
       </p>
       <p className="mt-1.5 text-white/70">
         Something not working?{" "}
         <a
-          href="mailto:mick@davidlewis.nl?subject=meetingsrooms.davidlewis.nl%3A%20bug%20report"
+          href="mailto:mick@davidlewis.nl?subject=meetingrooms.davidlewis.nl%3A%20bug%20report"
           className="pointer-events-auto text-white underline underline-offset-2 hover:text-white/80 transition-colors"
         >
           Report a bug
         </a>
       </p>
+      {findOpen && <FindBookingModal onClose={() => setFindOpen(false)} />}
     </div>
   );
 }
