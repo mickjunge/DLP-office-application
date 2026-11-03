@@ -41,6 +41,15 @@ function Blurb() {
       <p className="mt-1.5 text-white/70">
         Once you book, your booking appears here under My bookings. Change or cancel it there, or from your booking in a room's timeline, in the browser you booked from.
       </p>
+      <p className="mt-1.5 text-white/70">
+        Something not working?{" "}
+        <a
+          href="mailto:mick@davidlewis.nl?subject=meetingsrooms.davidlewis.nl%3A%20bug%20report"
+          className="pointer-events-auto text-white underline underline-offset-2 hover:text-white/80 transition-colors"
+        >
+          Report a bug
+        </a>
+      </p>
     </div>
   );
 }
