@@ -30,7 +30,9 @@ export default function FindBookingModal({ onClose }: { onClose: () => void }) {
             <ul className="list-disc pl-5 flex flex-col gap-1.5 text-white/85">
               <li>Booked on another device, or in another browser (for example Safari instead of Chrome).</li>
               <li>Booked at a different web address. Always use meetingrooms.davidlewis.nl; bookings made on an older address (ending in vercel.app) only show there.</li>
-              <li>Booked in a private or incognito window, or cleared the browser's site data since.</li>
+              <li>Booked in a private or incognito window.</li>
+              <li>Cleared your cookies, history or site data since. In Safari, clearing history also wipes this.</li>
+              <li>Use Safari and haven't visited in about a week. Safari can erase this data by itself.</li>
             </ul>
             <p>
               Your booking is still in the room's timeline for everyone to see. To change it, open the browser or address you booked from. If that's no longer possible, ask the person who maintains this page to change it for you.
