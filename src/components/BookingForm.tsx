@@ -102,6 +102,21 @@ export default function BookingForm({
 
   const set = <K extends keyof FormValues>(key: K, v: FormValues[K]) => setValues(prev => ({ ...prev, [key]: v }));
 
+  // Changing the start time moves the end time along, keeping the duration
+  // (12:00–12:30 → start 14:00 gives 14:00–14:30). Clamped to 23:59 since a
+  // booking can't run past midnight.
+  const changeStartTime = (newStart: string) => {
+    setValues(prev => {
+      if (!newStart || !prev.startTime || !prev.endTime) return { ...prev, startTime: newStart };
+      const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      const duration = toMin(prev.endTime) - toMin(prev.startTime);
+      if (duration <= 0) return { ...prev, startTime: newStart };
+      const total = Math.min(toMin(newStart) + duration, 23 * 60 + 59);
+      const endTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+      return { ...prev, startTime: newStart, endTime };
+    });
+  };
+
   const applyDuration = (minutes: number) => {
     if (!values.startTime) return;
     const [h, m] = values.startTime.split(":").map(Number);
@@ -222,7 +237,7 @@ export default function BookingForm({
       <div className="grid grid-cols-2 gap-3 [&>div]:min-w-0">
         <div>
           <label className="block mb-2 eyebrow">Start<span className="text-white/70 ml-0.5">*</span></label>
-          <input type="time" className={inputCls} value={values.startTime} onChange={e => set("startTime", e.target.value)} />
+          <input type="time" className={inputCls} value={values.startTime} onChange={e => changeStartTime(e.target.value)} />
         </div>
         <div>
           <label className="block mb-2 eyebrow">End<span className="text-white/70 ml-0.5">*</span></label>
